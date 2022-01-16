@@ -1,0 +1,42 @@
+#Link object files
+
+LIB_DIRS:=
+
+#OBJS=$(foreach n,$(shell find build/$(OBJ_DIR_NAME) -type d),$(wildcard $(n)/*.o))
+#OBJS=$(shell find build/$(OBJ_DIR_NAME) -type f -name "*.o")
+
+LIST_FILES:=$(shell find build/$(OBJ_DIR_NAME) -name list)
+#OBJS=$(shell cat $(LIST_FILES))
+OBJS=$(foreach n,$(LIST_FILES),$(addprefix $(patsubst %list, %, $(n)),$(shell cat $(n))))
+
+
+#ifneq ("$(wildcard $(LIB_DIR))", "")
+LIB_DIRS?=$(shell find -L $(LIB_DIR) -type d)
+LIB_LINK_FLAG:=$(addprefix $$ORIGIN/../,$(LIB_DIRS))
+LIB_LINK_FLAG:=$(shell echo '$(LIB_LINK_FLAG)' | sed -e 's/ /:/g')
+
+LIB_DIRS+=$(EXTRA_LIB_DIR)
+LIB_NAMES:=$(notdir $(foreach n,$(LIB_DIRS),$(wildcard $(n)/*.so)))
+
+LIB_DIR_FLAG:=$(addprefix -L ,$(LIB_DIRS))
+LIB_NAME_FLAG:=$(patsubst lib%.so,-l%,$(LIB_NAMES))
+LIB_NAME_FLAG+=$(addprefix -l,$(EXTRA_LIB_NAME))
+
+LIB_LINK_FLAGS:= $(LIB_DIR_FLAG) $(LIB_NAME_FLAG) -Wl,-disable-new-dtags,-rpath,'$(LIB_LINK_FLAG)'
+
+#endif
+
+BIN_DIR:=$(dir $(BIN))
+
+
+all: $(BIN_DIR) $(BIN)
+
+$(BIN_DIR):
+	mkdir -p $@
+
+$(BIN): $(OBJS)
+	@echo "Create static lib"
+	ar -rc $@ $^
+	@echo
+	@echo "Build successfully!"
+	

@@ -1,0 +1,12 @@
+
+build*/
+/bin/*
+!/bin/*.sh
+
+*.d
+*.dep
+*.o
+*.obj
+*.out
+*.exe
+

@@ -1,0 +1,14 @@
+
+build/
+/bin/*
+!/bin/*.sh
+
+install/
+tmp/
+
+
+*.d
+*.dep
+*.o
+*.out
+
