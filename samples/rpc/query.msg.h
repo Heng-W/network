@@ -5,6 +5,7 @@
 #include "net_ext/message/coded_stream.h"
 #include <vector>
 #include <numeric>
+#include <unordered_map>
 
 namespace test
 {
@@ -17,9 +18,11 @@ struct Query : net::Message
     std::string questioner;
     std::vector<int16_t> a;
     std::vector<std::string> question;
+    std::unordered_map<int32_t, std::string> desc;
 private:
     mutable int a_cachedSize_;
     mutable int question_cachedSize_;
+    mutable int desc_cachedSize_;
 public:
 
     int encodeToBytes(char* buf) const override
@@ -41,6 +44,14 @@ public:
         out.writeUInt(question.size());
         for (const auto& x: question) out.writeString(x);
 
+        out.writeTag(6, net::WireType::LENGTH_DELIMITED);
+        out.writeUInt(desc_cachedSize_);
+        out.writeUInt(desc.size());
+        for (const auto& x: desc)
+        {
+        out.writeInt(x.first);
+        out.writeString(x.second);
+        }
         return out.size();
     }
 
@@ -90,6 +101,23 @@ public:
                     }                
                     break;
                 }
+                case 6:
+                {
+                    int len = in.readLength();
+                    const uint8_t* end = in.cur() + len;
+                    desc.clear();
+                    size_t n = in.readUInt<unsigned int>();
+                    while (in.cur() != end)
+                    {
+                        int32_t x;
+                        in.readInt(&x);;
+                        std::string y;
+                        in.readString(&y);;
+                        desc[std::move(x)] = std::move(y);
+                    }
+                    if(n != desc.size()) throw std::runtime_error("size not match");                
+                    break;
+                }
                 default:
                     if (!in.readUnknownField(tag)) return false;
                     break;
@@ -105,11 +133,13 @@ protected:
             [](int sum, const int16_t& x) { return sum + net::sizeofInt(x); });
         question_cachedSize_ = std::accumulate(question.cbegin(), question.cend(), net::sizeofUInt(question.size()),
             [](int sum, const std::string& x) { return sum + net::sizeofString(x); });
-        return // byte size
-                net::sizeofTag(1) + net::sizeofInt(id) + 
-                net::sizeofTag(2) + net::sizeofString(questioner) + 
-                net::sizeofTag(4) + net::sizeofByteArray(a_cachedSize_) + 
-                net::sizeofTag(3) + net::sizeofByteArray(question_cachedSize_);
+        desc_cachedSize_ = std::accumulate(desc.cbegin(), desc.cend(), net::sizeofUInt(desc.size()),
+            [](int sum, const decltype(desc)::value_type& x) { return sum + net::sizeofInt(x.first) + net::sizeofString(x.second); });
+        return net::sizeofTag(1) + net::sizeofInt(id) + 
+               net::sizeofTag(2) + net::sizeofString(questioner) + 
+               net::sizeofTag(4) + net::sizeofByteArray(a_cachedSize_) + 
+               net::sizeofTag(3) + net::sizeofByteArray(question_cachedSize_) + 
+               net::sizeofTag(6) + net::sizeofByteArray(desc_cachedSize_);
     }
 
 };
@@ -156,8 +186,7 @@ struct Answer : net::Message
     protected:
         int byteSize() const override
         {
-            return // byte size
-                    net::sizeofTag(1) + net::sizeofInt(id);
+            return net::sizeofTag(1) + net::sizeofInt(id);
         }
 
     };
@@ -238,11 +267,10 @@ protected:
     {
         solution_cachedSize_ = std::accumulate(solution.cbegin(), solution.cend(), net::sizeofUInt(solution.size()),
             [](int sum, const std::string& x) { return sum + net::sizeofString(x); });
-        return // byte size
-                net::sizeofTag(1) + net::sizeofInt(id) + 
-                net::sizeofTag(2) + net::sizeofString(questioner) + 
-                net::sizeofTag(3) + net::sizeofString(answerer) + 
-                net::sizeofTag(4) + net::sizeofByteArray(solution_cachedSize_);
+        return net::sizeofTag(1) + net::sizeofInt(id) + 
+               net::sizeofTag(2) + net::sizeofString(questioner) + 
+               net::sizeofTag(3) + net::sizeofString(answerer) + 
+               net::sizeofTag(4) + net::sizeofByteArray(solution_cachedSize_);
     }
 
 };
@@ -251,13 +279,10 @@ struct Empty : net::Message
 {
     MESSAGE_TAG(test_Empty)
 
-    int32_t id;
 
     int encodeToBytes(char* buf) const override
     {
         net::CodedStreamWriter out(buf);
-        out.writeTag(1, net::WireType::VARINT);
-        out.writeInt(id);
         return out.size();
     }
 
@@ -269,11 +294,6 @@ struct Empty : net::Message
             int tag = in.readTag();
             switch (net::fieldNumberOfTag(tag))
             {
-                case 1:
-                {
-                    in.readInt(&id);                
-                    break;
-                }
                 default:
                     if (!in.readUnknownField(tag)) return false;
                     break;
@@ -285,8 +305,7 @@ struct Empty : net::Message
 protected:
     int byteSize() const override
     {
-        return // byte size
-                net::sizeofTag(1) + net::sizeofInt(id);
+        return 0;
     }
 
 };

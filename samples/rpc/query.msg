@@ -4,8 +4,9 @@ message Query {
   int64 id = 1;
   string questioner = 2;
 
-	repeated int16 a = 4;
+  repeated int16 a = 4;
   repeated string question = 3;
+  hashmap<int32, string> desc = 6;
 }
 
 message Answer {
@@ -21,5 +22,4 @@ message Answer {
 }
 
 message Empty {
-  int32 id = 1;
 }

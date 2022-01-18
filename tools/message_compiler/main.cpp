@@ -49,31 +49,38 @@ string generateCodeForByteSize(const Message& message)
 
     int count = message.typeParsers.size();
     int i = 0;
-    for (const auto& x : message.typeParsers)
-    {
-        if (!x->useCachedSize())
-        {
-            code << addPadding(x->codeForByteSize(), 12);
-        }
-        else
-        {
-            code << addPadding(x->codeForCachedSize(), 12);
-            extra << addPadding(x->codeForByteSize() + "\n", 4);
-        }
 
-        if (++i != count)
+    code << "    return ";
+    if (count == 0)
+    {
+        code << "0";
+    }
+    else
+    {
+        for (const auto& x : message.typeParsers)
         {
-            code << " + \n";
-        }
-        else
-        {
-            code << ";";
+            if (x->useCachedSize())
+            {
+                extra << addPadding(x->codeForByteSize(), 4) << "\n";
+            }
+            string def = x->useCachedSize() ? x->codeForCachedSize() : x->codeForByteSize();
+            if (i == 0) code << def;
+            else code << addPadding(def, 11);
+
+            if (++i != count)
+            {
+                code << " + \n";
+            }
         }
     }
 
-    return addPadding(
-               "int byteSize() const override\n{\n" + extra.str() +
-               "    return // byte size\n" + code.str() + "\n}\n", padding);
+    string res = "int byteSize() const override\n{\n";
+    string extraStr = extra.str();
+    if (!extraStr.empty()) res += extraStr;
+
+    res += code.str() + ";\n}\n";
+
+    return addPadding(res, padding);
 }
 
 
@@ -161,6 +168,32 @@ void parseItem(Content& text, Message* message)
         return;
     }
     text.skipInvalidWords();
+    if (text.cur() == '<')
+    {
+        if (!innerTypes.empty()) text.abortForParseError("invalid <");
+        text.next();
+        text.skipInvalidWords();
+        while (true)
+        {
+            innerTypes.push_back(TypeParserFactory::instance().create(text.readIdentifier()));
+            text.skipInvalidWords();
+            if (text.cur() == ',')
+            {
+                text.next();
+                text.skipInvalidWords();
+            }
+            else if (text.cur() == '>')
+            {
+                text.next();
+                text.skipInvalidWords();
+                break;
+            }
+            else
+            {
+                text.abortForParseError("lose '>'");
+            }
+        }
+    }
 
     auto parser = TypeParserFactory::instance().create(typeName);
     parser->setTypeName(typeName);

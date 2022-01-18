@@ -57,15 +57,15 @@ void TypeParser::parseItem(Content& text, Message* message)
 class UIntParser: public TypeParser
 {
 public:
-    string wireType() const override { return "VARINT"; }  
+    string wireType() const override { return "VARINT"; }
 
-    string codeForByteSize(const string& variableName) const override 
+    string codeForByteSize(const string& variableName) const override
     { return "net::sizeofUInt(" + variableName + ")"; }
-    string codeForWriter(const string& variableName) const override 
+    string codeForWriter(const string& variableName) const override
     { return "out.writeUInt(" + variableName + ");"; }
-    string codeForReader(const string& variableName) const override 
+    string codeForReader(const string& variableName) const override
     { return "in.readUInt(&" + variableName + ");"; }
-    
+
 };
 
 class UInt64Parser: public UIntParser
@@ -93,15 +93,15 @@ class UInt8Parser: public UIntParser
 class IntParser: public TypeParser
 {
 public:
-    string wireType() const override { return "VARINT"; }  
+    string wireType() const override { return "VARINT"; }
 
-    string codeForByteSize(const string& variableName) const override 
+    string codeForByteSize(const string& variableName) const override
     { return "net::sizeofInt(" + variableName + ")"; }
-    string codeForWriter(const string& variableName) const override 
+    string codeForWriter(const string& variableName) const override
     { return "out.writeInt(" + variableName + ");"; }
-    string codeForReader(const string& variableName) const override 
+    string codeForReader(const string& variableName) const override
     { return "in.readInt(&" + variableName + ");"; }
-    
+
 };
 
 class Int64Parser: public IntParser
@@ -128,13 +128,13 @@ class Fixed64Parser: public TypeParser
 {
 public:
     string realType() const override { return "int64_t"; }
-    string wireType() const override { return "FIXED64"; }  
-    
-    string codeForByteSize(const string&) const override 
+    string wireType() const override { return "FIXED64"; }
+
+    string codeForByteSize(const string&) const override
     { return "8"; }
-    string codeForWriter(const string& variableName) const override 
+    string codeForWriter(const string& variableName) const override
     { return "out.writeFixed64(" + variableName + ");"; }
-    string codeForReader(const string& variableName) const override 
+    string codeForReader(const string& variableName) const override
     { return "in.readFixed64(&" + variableName + ");"; }
 };
 
@@ -152,13 +152,13 @@ class Fixed32Parser: public TypeParser
 {
 public:
     string realType() const override { return "int32_t"; }
-    string wireType() const override { return "FIXED32"; }  
-    
-    string codeForByteSize(const string&) const override 
+    string wireType() const override { return "FIXED32"; }
+
+    string codeForByteSize(const string&) const override
     { return "4"; }
-    string codeForWriter(const string& variableName) const override 
+    string codeForWriter(const string& variableName) const override
     { return "out.writeFixed32(" + variableName + ");"; }
-    string codeForReader(const string& variableName) const override 
+    string codeForReader(const string& variableName) const override
     { return "in.readFixed32(&" + variableName + ");"; }
 };
 
@@ -176,12 +176,12 @@ class StringParser: public TypeParser
 {
 public:
     string realType() const override { return "std::string"; }
-    
-    string codeForByteSize(const string& variableName) const override 
+
+    string codeForByteSize(const string& variableName) const override
     { return "net::sizeofString(" + variableName + ")"; }
-    string codeForWriter(const string& variableName) const override 
+    string codeForWriter(const string& variableName) const override
     { return "out.writeString(" + variableName + ");"; }
-    string codeForReader(const string& variableName) const override 
+    string codeForReader(const string& variableName) const override
     { return "in.readString(&" + variableName + ");"; }
 };
 
@@ -222,7 +222,7 @@ public:
                  "for (const auto& x: %s) %s\n",
                  variableName.c_str(),
                  variableName.c_str(),
-                variableName.c_str(), innerTypes_[0]->codeForWriter("x").c_str());
+                 variableName.c_str(), innerTypes_[0]->codeForWriter("x").c_str());
         return buf;
     }
 

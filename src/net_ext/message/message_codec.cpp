@@ -56,7 +56,7 @@ uint16_t calcCheckSum(const void* buf, int size)
     return static_cast<uint16_t>(~cksum);
 }
 
-inline void send(const TcpConnectionPtr& conn, const Message& msg)
+inline net::Buffer createBuffer(const Message& msg)
 {
     int byteSize = msg.calcByteSize();
     util::StringView tag = msg.getTag();
@@ -74,8 +74,8 @@ inline void send(const TcpConnectionPtr& conn, const Message& msg)
     uint16_t checkSum = calcCheckSum(buf.peek(), buf.readableBytes());
     buf.appendUInt16(checkSum);
     buf.prependUInt32(buf.readableBytes());
-
-    conn->send(std::move(buf));
+    
+    return buf;
 }
 
 ErrorCode handle(const TcpConnectionPtr& conn, const char* buf, int len, Timestamp receiveTime)
@@ -174,7 +174,7 @@ std::string errorCodeToString(ErrorCode errorCode)
 
 void send(const TcpConnectionPtr& conn, const Message& msg)
 {
-    codec::send(conn, msg);
+    conn->send(codec::createBuffer(msg));
 }
 
 } // namespace net

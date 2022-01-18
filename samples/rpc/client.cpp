@@ -43,6 +43,7 @@ int main()
             test::Query query;
             query.questioner = "hw";
             query.question = {"question1", "question2"};
+            query.desc = {{1, "1"}, {2, "2"}};
             send(conn, query);
         }
     });

@@ -79,11 +79,11 @@ using TypeParserPtr = std::shared_ptr<TypeParser>;
 class DefaultParser: public TypeParser
 {
 public:
-    std::string codeForByteSize(const std::string& variableName) const override 
+    std::string codeForByteSize(const std::string& variableName) const override
     { return "net::sizeofMessage(" + variableName + ")"; }
-    std::string codeForWriter(const std::string& variableName) const override 
+    std::string codeForWriter(const std::string& variableName) const override
     { return "out.writeMessage(" + variableName + ");"; }
-    std::string codeForReader(const std::string& variableName) const override 
+    std::string codeForReader(const std::string& variableName) const override
     { return "in.readMessage(&" + variableName + ");"; }
 };
 
@@ -93,8 +93,10 @@ public:
     TypeParserPtr create(const std::string& typeName)
     {
         auto it = parserMap_.find(typeName);
-        if (it == parserMap_.end()) return std::make_shared<DefaultParser>();
-        return it->second();
+        TypeParserPtr parser = it == parserMap_.end()
+                               ? std::make_shared<DefaultParser>() : it->second();
+        parser->setTypeName(typeName);
+        return parser;
     }
 
     template <class T>

@@ -17,6 +17,7 @@ static void handleRequest(const net::TcpConnectionPtr& conn,
     LOG(INFO) << "onAnswer: " << message->getTag();
     LOG(INFO) << "questioner: " << message->questioner;
     for (const auto& x: message->question) LOG(INFO) << "question: " << x;
+    for (const auto& x: message->desc) LOG(INFO) << "desc: " << x.second;
     Answer answer;
     answer.solution = {"solution1", "solution2"};
     send(conn, answer);

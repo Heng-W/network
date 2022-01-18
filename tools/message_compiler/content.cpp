@@ -24,13 +24,15 @@ Content::Content(const string& fileName)
 
     lineBegin_ = cur_ = data_.data();
 }
-    
-    
+
+
 void Content::abortForParseError(const std::string& what) const
 {
-    std::cout << "parse error: " << what << " line:" << line_
-              << " pos:" << cur_ - lineBegin_ << std::endl;
-    abort();;
+    std::cout << "parse error: " << what
+              << "\nfile: " << fileName_
+              << "\nline: " << line_
+              << " pos: " << cur_ - lineBegin_ << std::endl;
+    exit(-1);
 }
 
 void Content::skipInvalidWords()
