@@ -7,17 +7,17 @@ C++11实现的Reactor模型网络库（参考[muduo](http://github.com/chenshuo/
 
 特性：
 - 消息编解码器，序列化及反序列化（参考protobuf设计）
-- 简易的RPC框架
+- 轻量级RPC框架
 - 简易的RTSP流媒体服务器、HTTP服务器
 
 
-#### Linux下编译安装
+### Linux下编译安装
 ```shell
 make -j
 make install [PREFIX=<install_dir>]
 ```
 
-#### 跨平台的网络客户端
+### 跨平台的网络客户端
 编译安装：
 ```shell
 cd client/cpp
@@ -29,7 +29,7 @@ cmake ..
 make
 make install
 ```
-#### message编译器
+### message编译器
 自动生成序列化及反序列的代码
 
 构建：
