@@ -81,11 +81,12 @@ public:
     }
 
     template <class T>
-    bool registerHandler(const typename MessageHandlerT<T>::HandleMessageCallback& cb)
+    void registerHandler(const typename MessageHandlerT<T>::HandleMessageCallback& cb)
     {
         auto handler = std::make_shared<MessageHandlerT<T>>(cb);
         util::StringView tag = T::kMessageTag;
-        return handlers_.insert({tag, handler}).second;
+        bool succeed = handlers_.insert({tag, handler}).second;
+        if (!succeed) throw std::runtime_error("registerHandler");
     }
 
     static MessageHandlerDispatcher& instance()
@@ -102,8 +103,17 @@ private:
     HandlerMap handlers_;
 };
 
+template <class T>
+inline void registerMessageHandler(const typename MessageHandlerT<T>::HandleMessageCallback& cb)
+{
+    net::MessageHandlerDispatcher::instance().registerHandler<T>(cb);
+}
 
-void send(const TcpConnectionPtr& conn, const Message& message);
+
+void send(const TcpConnectionPtr& conn, const Message& msg);
+
+class Buffer;
+Buffer createBuffer(const Message& msg);
 
 
 } // namespace net
@@ -115,18 +125,11 @@ void send(const TcpConnectionPtr& conn, const Message& message);
     static constexpr util::StringView kMessageTag = (#tag);
 
 // 注册消息处理回调
-#define REGISTER_MESSAGE_HANDLER(MessageType, handleMessageCallback) \
-    static bool s_registerHandlerOf ## MessageType = [] \
+#define REGISTER_MESSAGE_HANDLER(MessageType, handleMessageCb) \
+    static bool s_registerMessageHandlerOf ## MessageType = [] \
             {  \
-               bool succeed = net::MessageHandlerDispatcher::instance() \
-                              .registerHandler<MessageType>(handleMessageCallback); \
-               if (!succeed) \
-    { \
-    printf("register message %s failed, from %s : %d", \
-           #MessageType, __FILE__, __LINE__); \
-        exit(-1); \
-    } \
-    return true; \
+               net::registerMessageHandler<MessageType>(handleMessageCb); \
+               return true; \
             }();
 
 #endif // NET_MESSAGE_H

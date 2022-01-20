@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <functional>
 
@@ -100,11 +100,12 @@ public:
     }
 
     template <class T>
-    bool registerParser(const std::string& typeName)
+    void registerParser(const std::string& typeName)
     {
         static_assert(std::is_base_of<TypeParser, T>::value,
                       "T must be derived from TypeParser.");
-        return parserMap_.insert({typeName, []{ return std::make_shared<T>(); }}).second;
+        bool succeed = parserMap_.insert({typeName, []{ return std::make_shared<T>(); }}).second;
+        if (!succeed) throw std::runtime_error("registerParser");
     }
 
     static TypeParserFactory& instance()
@@ -116,7 +117,7 @@ public:
 private:
     TypeParserFactory() = default;
 
-    std::map<std::string, std::function<TypeParserPtr()>> parserMap_;
+    std::unordered_map<std::string, std::function<TypeParserPtr()>> parserMap_;
 
 };
 
@@ -124,8 +125,8 @@ private:
 #define REGISTER_TYPE_PARSER(typeName, TypeParserClassName) \
     static bool s_registerParserOf ## typeName = [] \
             {  \
-               return TypeParserFactory::instance() \
-                      .registerParser<TypeParserClassName>(#typeName); \
+               TypeParserFactory::instance().registerParser<TypeParserClassName>(#typeName); \
+               return true; \
             }();
 
 #endif // TYPE_PARSER_H

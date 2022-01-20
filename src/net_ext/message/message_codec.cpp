@@ -74,7 +74,7 @@ inline net::Buffer createBuffer(const Message& msg)
     uint16_t checkSum = calcCheckSum(buf.peek(), buf.readableBytes());
     buf.appendUInt16(checkSum);
     buf.prependUInt32(buf.readableBytes());
-    
+
     return buf;
 }
 
@@ -175,6 +175,11 @@ std::string errorCodeToString(ErrorCode errorCode)
 void send(const TcpConnectionPtr& conn, const Message& msg)
 {
     conn->send(codec::createBuffer(msg));
+}
+
+Buffer createBuffer(const Message& msg)
+{
+    return codec::createBuffer(msg);
 }
 
 } // namespace net
