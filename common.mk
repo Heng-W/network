@@ -24,6 +24,17 @@ ifeq ("$(wildcard $(DEP_DIR))", "")
 $(shell mkdir -p $(DEP_DIR))
 endif
 
+# check subdir list
+SUBDIR_LIST_FILE:=$(OBJ_DIR)/dir_list
+
+ifeq ("$(wildcard $(SUBDIR_LIST_FILE))", "")
+$(shell touch $(SUBDIR_LIST_FILE))
+endif
+
+ifneq ($(shell cat $(SUBDIR_LIST_FILE)), $(SUBDIRS))
+$(shell echo $(SUBDIRS) > $(SUBDIR_LIST_FILE))
+endif
+
 # check obj list
 OBJ_LIST_FILE:=$(OBJ_DIR)/list
 OBJ_LIST:=$(patsubst %.cpp,%.o,$(SRCS))

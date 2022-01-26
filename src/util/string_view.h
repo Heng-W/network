@@ -11,7 +11,10 @@ namespace util
 class StringView
 {
     friend std::ostream& operator<<(std::ostream& out, const StringView& str)
-    { out << str.data_; return out; }
+    {
+        for (const char& c : str) out << c;
+        return out;
+    }
 
 public:
     constexpr StringView(): data_(nullptr), size_(0) {}

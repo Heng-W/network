@@ -34,58 +34,46 @@ class TcpConnection;
 using TcpConnectionPtr = std::shared_ptr<TcpConnection>;
 using MessagePtr = std::shared_ptr<Message>;
 
-struct MessageHandler
-{
-    virtual ~MessageHandler() = default;
-    virtual void handle(const TcpConnectionPtr&,
-                        const MessagePtr&,
-                        util::Timestamp) const = 0;
-    virtual MessagePtr createMessage() const = 0;
-};
-
 template <class T>
-struct MessageHandlerT: MessageHandler
+using HandleMessageCallback = std::function<void(const TcpConnectionPtr&,
+                              const std::shared_ptr<T>&,
+                              util::Timestamp)>;
+
+struct MessageCallbackList
 {
-    static_assert(std::is_base_of<Message, T>::value,
-                  "T must be derived from net::Message.");
-
-    using HandleMessageCallback = std::function<void(const TcpConnectionPtr&,
-                                  const std::shared_ptr<T>&,
-                                  util::Timestamp)>;
-
-    MessageHandlerT(const HandleMessageCallback& cb)
-        : handleMessageCallback_(cb) {}
-
-    void handle(const TcpConnectionPtr& conn,
-                const MessagePtr& message,
-                util::Timestamp receiveTime) const override
-    {
-        std::shared_ptr<T> concrete = util::down_pointer_cast<T>(message);
-        assert(concrete);
-        handleMessageCallback_(conn, concrete, receiveTime);
-    }
-
-    MessagePtr createMessage() const override { return std::make_shared<T>(); }
-
-private:
-    HandleMessageCallback handleMessageCallback_;
+    std::function<MessagePtr()> createMessage;
+    std::function<void(const TcpConnectionPtr&,
+                       const MessagePtr&,
+                       util::Timestamp)> handle;
 };
 
 class MessageHandlerDispatcher
 {
 public:
-    std::shared_ptr<MessageHandler> findHandlerByTag(const util::StringView& tag)
+    MessageCallbackList* findHandlerByTag(const util::StringView& tag)
     {
         auto it = handlers_.find(tag);
-        return it != handlers_.end() ? it->second : nullptr;
+        return it != handlers_.end() ? &it->second : nullptr;
     }
 
     template <class T>
-    void registerHandler(const typename MessageHandlerT<T>::HandleMessageCallback& cb)
+    void registerHandler(const HandleMessageCallback<T>& cb)
     {
-        auto handler = std::make_shared<MessageHandlerT<T>>(cb);
+        static_assert(std::is_base_of<Message, T>::value,
+                      "T must be derived from net::Message.");
+        auto createMessageCb = [] { return std::make_shared<T>(); };
+        auto handleCb = [cb](const TcpConnectionPtr & conn,
+                             const MessagePtr & message,
+                             util::Timestamp receiveTime)
+        {
+            std::shared_ptr<T> concrete = util::down_pointer_cast<T>(message);
+            assert(concrete);
+            cb(conn, concrete, receiveTime);
+        };
+        MessageCallbackList callbacks = {std::move(createMessageCb), std::move(handleCb)};
+
         util::StringView tag = T::kMessageTag;
-        bool succeed = handlers_.insert({tag, handler}).second;
+        bool succeed = handlers_.emplace(tag, std::move(callbacks)).second;
         if (!succeed) throw std::runtime_error("registerHandler");
     }
 
@@ -98,13 +86,13 @@ public:
 private:
     MessageHandlerDispatcher() = default;
 
-    using HandlerMap = std::unordered_map<util::StringView, std::shared_ptr<MessageHandler>>;
+    using HandlerMap = std::unordered_map<util::StringView, MessageCallbackList>;
 
     HandlerMap handlers_;
 };
 
 template <class T>
-inline void registerMessageHandler(const typename MessageHandlerT<T>::HandleMessageCallback& cb)
+inline void registerMessageHandler(const HandleMessageCallback<T>& cb)
 {
     net::MessageHandlerDispatcher::instance().registerHandler<T>(cb);
 }

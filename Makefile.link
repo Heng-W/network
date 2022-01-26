@@ -5,9 +5,9 @@ LIB_DIRS:=
 #OBJS=$(foreach n,$(shell find build/$(OBJ_DIR_NAME) -type d),$(wildcard $(n)/*.o))
 #OBJS=$(shell find build/$(OBJ_DIR_NAME) -type f -name "*.o")
 
-LIST_FILES:=$(shell find build/$(OBJ_DIR_NAME) -name list)
-#OBJS=$(shell cat $(LIST_FILES))
-OBJS=$(foreach n,$(LIST_FILES),$(addprefix $(patsubst %list, %, $(n)),$(shell cat $(n))))
+#LIST_FILES:=$(shell find build/$(OBJ_DIR_NAME) -name list)
+DIR_LIST:=$(shell bash collect_dir.sh build/$(OBJ_DIR_NAME)/)
+OBJS:=$(foreach n, $(DIR_LIST), $(addprefix $(n), $(shell cat $(n)list)))
 
 
 #ifneq ("$(wildcard $(LIB_DIR))", "")
