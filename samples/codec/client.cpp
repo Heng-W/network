@@ -5,7 +5,22 @@
 #include "net/event_loop.h"
 #include "net/tcp_client.h"
 #include "net_ext/message/message_codec.h"
-#include "net_ext/rpc/rpc_client_service.h"
+
+namespace test
+{
+
+static void handleResponse(const net::TcpConnectionPtr& conn,
+                           const std::shared_ptr<Answer>& message,
+                           util::Timestamp)
+{
+    // handle code
+    LOG(INFO) << "get: " << message->getTag();
+    for (const auto& x: message->solution) LOG(INFO) << "solution: " << x;
+}
+
+REGISTER_MESSAGE_HANDLER(Answer, handleResponse)
+
+} // namespace test
 
 
 int main()
@@ -13,9 +28,6 @@ int main()
     using namespace net;
     EventLoop loop;
     TcpClient client(&loop, InetAddress(18825));
-    client.setMessageCallback(&codec::onMessage);
-    registerRpcResponseHandler();
-    
     client.setConnectionCallback([&loop](const TcpConnectionPtr & conn)
     {
         LOG(INFO) << conn->localAddr().toIpPort() << " -> "
@@ -32,14 +44,12 @@ int main()
             query.questioner = "hw";
             query.question = {"question1", "question2"};
             query.desc = {{1, "1"}, {2, "2"}};
-            rpcSolve<test::Answer>(conn, query, [](const std::shared_ptr<test::Answer>& resp)
-            {
-                LOG(INFO) << "get: " << resp->getTag();
-                for (const auto& x : resp->solution) LOG(INFO) << "solution: " << x;
-            });
+            send(conn, query);
         }
     });
 
+
+    client.setMessageCallback(&codec::onMessage);
     client.connect();
     loop.loop();
     return 0;

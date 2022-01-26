@@ -271,5 +271,6 @@ REGISTER_TYPE_PARSER(ufixed32, UFixed32Parser)
 REGISTER_TYPE_PARSER(fixed32, Fixed32Parser)
 
 REGISTER_TYPE_PARSER(string, StringParser)
+REGISTER_TYPE_PARSER(bytes, StringParser)
 REGISTER_TYPE_PARSER(vector, VectorParser)
 

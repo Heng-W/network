@@ -6,7 +6,7 @@ build/
 install/
 tmp/
 
-
+*.msg.h
 *.d
 *.dep
 *.o
