@@ -11,7 +11,7 @@ INSTALL_INC_DIR:=$(INSTALL_DIR)/include$(TARGET_DIR)
 TARGET_INSTALL_INCS:=$(patsubst %,$(INSTALL_INC_DIR)/%,$(INSTALL_INCS))
 
 
-SUBDIRS?=$(shell ls -F | grep /$$ | grep -v "\.d/$$")
+SUBDIRS?=$(shell ls -F | grep /$$ | grep -v "\.d/$$" | sed 's|/$$||g')
 SRCS?=$(wildcard *.cpp)
 OBJS:=$(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 DEPS:=$(patsubst %.cpp,$(DEP_DIR)/%.dep,$(SRCS))

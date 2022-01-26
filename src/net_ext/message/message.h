@@ -42,9 +42,7 @@ using HandleMessageCallback = std::function<void(const TcpConnectionPtr&,
 struct MessageCallbackList
 {
     std::function<MessagePtr()> createMessage;
-    std::function<void(const TcpConnectionPtr&,
-                       const MessagePtr&,
-                       util::Timestamp)> handle;
+    HandleMessageCallback<Message> handle;
 };
 
 class MessageHandlerDispatcher
@@ -61,16 +59,16 @@ public:
     {
         static_assert(std::is_base_of<Message, T>::value,
                       "T must be derived from net::Message.");
-        auto createMessageCb = [] { return std::make_shared<T>(); };
-        auto handleCb = [cb](const TcpConnectionPtr & conn,
-                             const MessagePtr & message,
-                             util::Timestamp receiveTime)
+        MessageCallbackList callbacks;
+        callbacks.createMessage = [] { return std::make_shared<T>(); };
+        callbacks.handle = [cb](const TcpConnectionPtr & conn,
+                                const MessagePtr & message,
+                                util::Timestamp receiveTime)
         {
             std::shared_ptr<T> concrete = util::down_pointer_cast<T>(message);
             assert(concrete);
             cb(conn, concrete, receiveTime);
         };
-        MessageCallbackList callbacks = {std::move(createMessageCb), std::move(handleCb)};
 
         util::StringView tag = T::kMessageTag;
         bool succeed = handlers_.emplace(tag, std::move(callbacks)).second;
