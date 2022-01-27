@@ -48,6 +48,18 @@ inline std::shared_ptr<To> down_pointer_cast(const std::shared_ptr<From>& f)
     return std::static_pointer_cast<To>(f);
 }
 
+template <typename To, typename From, typename Del>
+inline std::unique_ptr<To, Del> down_pointer_cast(std::unique_ptr<From, Del>&& f)
+{
+    if (false)
+    {
+        implicit_cast<From*, To*>(0);
+    }
+    assert(f == nullptr || dynamic_cast<To*>(get_pointer(f)) != nullptr);
+    auto to = static_cast<To*>(f.release());
+    return std::unique_ptr<To, Del>(to, std::move(f.get_deleter()));
+}
+
 } // namespace util
 
 #endif // UTIL_TYPE_H

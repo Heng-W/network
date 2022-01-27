@@ -9,15 +9,15 @@
 namespace net
 {
 
-static std::unordered_map<util::StringView, std::shared_ptr<RequestCallbackList>> s_callbackMap;
+static std::unordered_map<util::StringView, RequestCallbackList> s_callbackMap;
 
 namespace detail
 {
 
 void registerRpcService(const util::StringView& tag,
-                        const std::shared_ptr<RequestCallbackList>& callbacks)
+                        RequestCallbackList&& callbacks)
 {
-    s_callbackMap[tag] = callbacks;
+    s_callbackMap[tag] = std::move(callbacks);
 }
 
 } // namespace detail
@@ -38,13 +38,13 @@ static void handleRequest(const net::TcpConnectionPtr& conn,
         send(conn, rpcResp);
         return;
     }
-    auto handler = it->second;
+    auto handler = &it->second;
     assert(handler);
-    MessagePtr request = handler->createRequest();
+    auto request = handler->createRequest();
     assert(request);
     if (request->decodeFromBytes(rpcRequest->content.data(), rpcRequest->content.size()))
     {
-        MessagePtr resp = handler->handle(request);
+        auto resp = handler->handle(std::move(request));
 
         rpcResp.status = 0;
         rpcResp.content.resize(resp->calcByteSize());

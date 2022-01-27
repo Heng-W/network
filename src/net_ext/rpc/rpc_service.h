@@ -8,14 +8,14 @@ namespace net
 
 struct RequestCallbackList
 {
-    std::function<MessagePtr()> createRequest;
-    std::function<MessagePtr(const MessagePtr&)> handle;
+    std::function<std::unique_ptr<Message>()> createRequest;
+    std::function<std::unique_ptr<Message>(std::unique_ptr<Message>)> handle;
 };
 
 namespace detail
 {
 void registerRpcService(const util::StringView& tag,
-                        const std::shared_ptr<RequestCallbackList>& callbacks);
+                        RequestCallbackList&& callbacks);
 } // namespace detail
 
 template <class Request, class Response>
@@ -25,13 +25,13 @@ inline void registerRpcService(const std::function<void(const Request&, Response
                   "Request must be derived from net::Message.");
     static_assert(std::is_base_of<Message, Response>::value,
                   "Response must be derived from net::Message.");
-    auto callbacks = std::make_shared<RequestCallbackList>();
-    callbacks->createRequest = [] { return std::make_shared<Request>(); };
-    callbacks->handle = [cb](const MessagePtr & msg) -> MessagePtr
+    RequestCallbackList callbacks;
+    callbacks.createRequest = [] { return std::unique_ptr<Request>(new Request()); };
+    callbacks.handle = [cb](std::unique_ptr<Message> msg) -> std::unique_ptr<Message>
     {
-        auto request = util::down_pointer_cast<Request>(msg);
+        auto request = util::down_pointer_cast<Request>(std::move(msg));
         assert(request);
-        auto resp = std::make_shared<Response>();
+        std::unique_ptr<Response> resp(new Response());
         cb(*request, resp.get());
         return resp;
     };
