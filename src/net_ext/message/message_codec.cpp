@@ -92,12 +92,15 @@ ErrorCode handle(const TcpConnectionPtr& conn, const char* buf, int len, Timesta
 
     uint16_t tagLen = asUInt16(buf);
     buf += sizeof(uint16_t);
+    util::StringView tag(buf, tagLen);
     auto handler = MessageHandlerDispatcher::instance()
-                   .findHandlerByTag(util::StringView(buf, tagLen));
+                   .findHandlerByTag(tag);
+
     buf += tagLen;
 
     if (!handler)
     {
+        LOG(ERROR) << "message tag: " << tag;
         return ErrorCode::UNKNOWN_MESSAGE_TYPE;
     }
     MessagePtr msg = handler->createMessage();

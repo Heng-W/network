@@ -15,7 +15,8 @@ inline void registerRpcService(const std::function<void(const Request&, Response
     {
         Response resp;
         call(*request, &resp);
-        send(conn, resp);
+        MessagePtr msgPtr = std::make_shared<Response>(std::move(resp));
+        conn->setContext(std::move(msgPtr));
     });
 }
 

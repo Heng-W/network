@@ -88,16 +88,16 @@ public:
     void writeFixed64(const T& value)
     {
         static_assert(sizeof(T) == 8, "should be 64 bits");
-        uint64_t data = hostToNetwork64(*reinterpret_cast<const uint64_t*>(&value));
-        cur_ = std::copy_n(&data, sizeof(data), cur_);
+        *reinterpret_cast<uint64_t*>(cur_) = hostToNetwork64(*reinterpret_cast<const uint64_t*>(&value));
+        cur_ += sizeof(T);
     }
 
     template <typename T>
     void writeFixed32(const T& value)
     {
         static_assert(sizeof(T) == 4, "should be 32 bits");
-        uint32_t data = hostToNetwork32(*reinterpret_cast<const uint32_t*>(&value));
-        cur_ = std::copy_n(&data, sizeof(data), cur_);
+        *reinterpret_cast<uint32_t*>(cur_) = hostToNetwork32(*reinterpret_cast<const uint32_t*>(&value));
+        cur_ += sizeof(T);
     }
 
     void writeByteArray(const void* data, int len)
@@ -223,9 +223,8 @@ public:
     {
         static_assert(sizeof(T) == 8, "should be 64 bits");
         assert(end_ - cur_ >= sizeof(T));
-        uint64_t data = networkToHost64(*reinterpret_cast<const uint64_t*>(cur_));
-        cur_ += sizeof(uint64_t);
-        *value = *reinterpret_cast<T*>(&data);
+        *reinterpret_cast<uint64_t*>(value) = networkToHost64(*reinterpret_cast<const uint64_t*>(cur_));
+        cur_ += sizeof(T);
     }
 
     template <typename T>
@@ -233,9 +232,8 @@ public:
     {
         static_assert(sizeof(T) == 4, "should be 32 bits");
         assert(end_ - cur_ >= sizeof(T));
-        uint32_t data = networkToHost32(*reinterpret_cast<const uint32_t*>(cur_));
-        cur_ += sizeof(uint32_t);
-        *value = *reinterpret_cast<T*>(&data);
+        *reinterpret_cast<uint32_t*>(value) = networkToHost32(*reinterpret_cast<const uint32_t*>(cur_));
+        cur_ += sizeof(T);
     }
 
     // 字节流读取到buf

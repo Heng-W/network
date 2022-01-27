@@ -7,6 +7,7 @@ install/
 tmp/
 
 *.msg.h
+!rpc.msg.h
 *.d
 *.dep
 *.o

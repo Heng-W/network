@@ -18,26 +18,17 @@ class Any
 
 public:
     Any(): content_(nullptr) {}
+    ~Any() { if (content_) delete content_; }
 
     template <class ValueType>
     Any(ValueType&& value)
         : content_(new Holder<typename std::decay<ValueType>::type>(
                        std::forward<ValueType>(value))) {}
 
-    ~Any() { if (content_) delete content_; }
-
     Any(const Any& rhs) : content_(rhs.content_ ? rhs.content_->clone() : nullptr) {}
-    Any(Any& rhs) : Any(const_cast<const Any&>(rhs)) {}
     Any(Any&& rhs) noexcept: content_(rhs.content_) { rhs.content_ = nullptr; }
 
     Any& operator=(const Any& rhs)
-    {
-        Any(rhs).swap(*this);
-        return *this;
-    }
-
-    template <class ValueType>
-    Any& operator=(const ValueType& rhs)
     {
         Any(rhs).swap(*this);
         return *this;
@@ -51,6 +42,13 @@ public:
             content_ = rhs.content_;
             rhs.content_ = nullptr;
         }
+        return *this;
+    }
+
+    template <class ValueType>
+    Any& operator=(ValueType&& value)
+    {
+        Any(std::forward<ValueType>(value)).swap(*this);
         return *this;
     }
 

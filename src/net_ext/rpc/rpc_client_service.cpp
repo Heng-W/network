@@ -52,6 +52,11 @@ static void handleResponse(const net::TcpConnectionPtr& conn,
             s_callbackMap.erase(it);
         }
     }
+    if (!callbacks)
+    {
+       LOG(ERROR) << "unknown id: " << rpcResponse->id;
+       return;
+    }
     auto msg = callbacks->createResponse();
     assert(msg);
     if (msg->decodeFromBytes(rpcResponse->content.data(), rpcResponse->content.size()))
