@@ -15,13 +15,9 @@ int main()
     TcpClient client(&loop, InetAddress(18825));
     client.setMessageCallback(&codec::onMessage);
     registerRpcResponseHandler();
-    
+
     client.setConnectionCallback([&loop](const TcpConnectionPtr & conn)
     {
-        LOG(INFO) << conn->localAddr().toIpPort() << " -> "
-                  << conn->peerAddr().toIpPort() << " is "
-                  << (conn->connected() ? "UP" : "DOWN");
-
         if (!conn->connected())
         {
             loop.quit();
@@ -32,10 +28,11 @@ int main()
             query.questioner = "hw";
             query.question = {"question1", "question2"};
             query.desc = {{1, "1"}, {2, "2"}};
-            rpcSolve<test::Answer>(conn, query, [](const std::shared_ptr<test::Answer>& resp)
+            rpcSolve<test::Answer>(conn, query, [conn](const std::shared_ptr<test::Answer>& resp)
             {
                 LOG(INFO) << "get: " << resp->getTag();
                 for (const auto& x : resp->solution) LOG(INFO) << "solution: " << x;
+                conn->shutdown();
             });
         }
     });

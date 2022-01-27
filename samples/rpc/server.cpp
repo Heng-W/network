@@ -7,7 +7,6 @@
 #include "net_ext/message/message_codec.h"
 #include "net_ext/rpc/rpc_service.h"
 
-
 int main()
 {
     using namespace net;
@@ -17,8 +16,6 @@ int main()
     server.setMessageCallback(&codec::onMessage);
     registerRpcRequestHandler();
 
-    std::unique_ptr<int> pt(new int(1));
-    //util::Any(std::move(pt));
     registerRpcService<Query, Answer>([](const Query & request, Answer * response)
     {
         LOG(INFO) << "onAnswer: " << request.getTag();
@@ -27,7 +24,7 @@ int main()
         for (const auto& x : request.desc) LOG(INFO) << "desc: " << x.second;
         response->solution = {"solution1", "solution2"};
     });
-    
+
     server.start();
     loop.loop();
     return 0;
