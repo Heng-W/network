@@ -15,17 +15,20 @@ struct ResponseCallbackList
     HandleResponseCallback<Message> handle;
 };
 
+namespace detail
+{
 void rpcSolve(const TcpConnectionPtr& conn,
-        const Message& request, 
-        const std::shared_ptr<ResponseCallbackList>& callbacks);
+              const Message& request,
+              const std::shared_ptr<ResponseCallbackList>& callbacks);
+} // namespace detail
 
 template <class Response>
 void rpcSolve(const TcpConnectionPtr& conn,
-        const Message& request, 
-        const HandleResponseCallback<Response>& cb)
+              const Message& request,
+              const HandleResponseCallback<Response>& cb)
 {
     static_assert(std::is_base_of<Message, Response>::value,
-              "Response must be derived from net::Message.");
+                  "Response must be derived from net::Message.");
     auto callbacks = std::make_shared<ResponseCallbackList>();
     callbacks->createResponse = [] { return std::make_shared<Response>(); };
     callbacks->handle = [cb](const MessagePtr & message)
@@ -34,7 +37,7 @@ void rpcSolve(const TcpConnectionPtr& conn,
         assert(concrete);
         cb(concrete);
     };
-    rpcSolve(conn, request, std::move(callbacks));   
+    detail::rpcSolve(conn, request, std::move(callbacks));
 }
 
 void registerRpcResponseHandler();

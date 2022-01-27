@@ -5,19 +5,38 @@
 
 namespace net
 {
-    
-template <class Request, class Response>
-inline void registerRpcService(const std::function<void(const Request&, Response*)>& call)
+
+struct RequestCallbackList
 {
-    registerMessageHandler<Request>([call](const TcpConnectionPtr & conn,
-                                         const std::shared_ptr<Request>& request,
-                                         util::Timestamp)
+    std::function<MessagePtr()> createRequest;
+    std::function<MessagePtr(const MessagePtr&)> handle;
+};
+
+namespace detail
+{
+void registerRpcService(const util::StringView& tag,
+                        const std::shared_ptr<RequestCallbackList>& callbacks);
+} // namespace detail
+
+template <class Request, class Response>
+inline void registerRpcService(const std::function<void(const Request&, Response*)>& cb)
+{
+    static_assert(std::is_base_of<Message, Request>::value,
+                  "Request must be derived from net::Message.");
+    static_assert(std::is_base_of<Message, Response>::value,
+                  "Response must be derived from net::Message.");
+    auto callbacks = std::make_shared<RequestCallbackList>();
+    callbacks->createRequest = [] { return std::make_shared<Request>(); };
+    callbacks->handle = [cb](const MessagePtr & msg) -> MessagePtr
     {
-        Response resp;
-        call(*request, &resp);
-        MessagePtr msgPtr = std::make_shared<Response>(std::move(resp));
-        conn->setContext(std::move(msgPtr));
-    });
+        auto request = util::down_pointer_cast<Request>(msg);
+        assert(request);
+        auto resp = std::make_shared<Response>();
+        cb(*request, resp.get());
+        return resp;
+    };
+    util::StringView tag = Request::kMessageTag;
+    detail::registerRpcService(tag, std::move(callbacks));
 }
 
 void registerRpcRequestHandler();

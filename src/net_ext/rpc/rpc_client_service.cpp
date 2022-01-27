@@ -10,7 +10,7 @@
 
 namespace net
 {
-   
+
 namespace
 {
 std::atomic<uint64_t> s_id;
@@ -19,9 +19,12 @@ std::mutex s_mutex;
 
 } // namespace
 
+namespace detail
+{
+
 void rpcSolve(const TcpConnectionPtr& conn,
-        const Message& request, 
-        const std::shared_ptr<ResponseCallbackList>& callbacks)
+              const Message& request,
+              const std::shared_ptr<ResponseCallbackList>& callbacks)
 {
     uint64_t id = ++s_id;
     RpcRequest rpcRequest;
@@ -38,11 +41,14 @@ void rpcSolve(const TcpConnectionPtr& conn,
     send(conn, rpcRequest);
 }
 
+} // namespace detail
+
 static void handleResponse(const net::TcpConnectionPtr& conn,
-                          const std::shared_ptr<RpcResponse>& rpcResponse,
-                          util::Timestamp receiveTime)
+                           const std::shared_ptr<RpcResponse>& rpcResponse,
+                           util::Timestamp receiveTime)
 {
     std::shared_ptr<ResponseCallbackList> callbacks;
+
     {
         std::lock_guard<std::mutex> lock(s_mutex);
         auto it = s_callbackMap.find(rpcResponse->id);
@@ -54,8 +60,8 @@ static void handleResponse(const net::TcpConnectionPtr& conn,
     }
     if (!callbacks)
     {
-       LOG(ERROR) << "unknown id: " << rpcResponse->id;
-       return;
+        LOG(ERROR) << "unknown id: " << rpcResponse->id;
+        return;
     }
     auto msg = callbacks->createResponse();
     assert(msg);

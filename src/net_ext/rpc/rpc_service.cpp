@@ -1,35 +1,51 @@
 
-#include "rpc.msg.h"
+#include "rpc_service.h"
+
+#include <unordered_map>
 #include "net/tcp_connection.h"
 #include "util/logger.h"
+#include "rpc.msg.h"
 
 namespace net
 {
+
+static std::unordered_map<util::StringView, std::shared_ptr<RequestCallbackList>> s_callbackMap;
+
+namespace detail
+{
+
+void registerRpcService(const util::StringView& tag,
+                        const std::shared_ptr<RequestCallbackList>& callbacks)
+{
+    s_callbackMap[tag] = callbacks;
+}
+
+} // namespace detail
 
 static void handleRequest(const net::TcpConnectionPtr& conn,
                           const std::shared_ptr<RpcRequest>& rpcRequest,
                           util::Timestamp receiveTime)
 {
-    util::StringView tag(rpcRequest->method.data(), rpcRequest->method.size());
-    LOG(INFO)<<tag;
-    auto handler = MessageHandlerDispatcher::instance().findHandlerByTag(tag);
     RpcResponse rpcResp;
     rpcResp.id = rpcRequest->id;
- LOG(INFO)<<rpcRequest->id;
-    if (!handler)
+
+    util::StringView tag(rpcRequest->method.data(), rpcRequest->method.size());
+    auto it = s_callbackMap.find(tag);
+    if (it == s_callbackMap.end())
     {
         rpcResp.status = -1;
         rpcResp.describe = "invalid method";
         send(conn, rpcResp);
         return;
     }
-    MessagePtr msg = handler->createMessage();
-    assert(msg);
-    if (msg->decodeFromBytes(rpcRequest->content.data(),rpcRequest->content.size()))
+    auto handler = it->second;
+    assert(handler);
+    MessagePtr request = handler->createRequest();
+    assert(request);
+    if (request->decodeFromBytes(rpcRequest->content.data(), rpcRequest->content.size()))
     {
-        handler->handle(conn, msg, receiveTime);
-        const MessagePtr& resp = util::any_cast<const MessagePtr&>(conn->getContext());
-       
+        MessagePtr resp = handler->handle(request);
+
         rpcResp.status = 0;
         rpcResp.content.resize(resp->calcByteSize());
         size_t nwrote = resp->encodeToBytes(&*rpcResp.content.begin()); // 写入编码字节流
