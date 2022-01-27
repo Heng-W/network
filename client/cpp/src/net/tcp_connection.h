@@ -55,6 +55,7 @@ public:
     Buffer* inputBuffer() { return &inputBuffer_; }
 
     void setContext(const util::Any& context) { context_ = context; }
+    void setContext(util::Any&& context) { context_ = std::move(context); }
     const util::Any& getContext() const { return context_; }
     util::Any* getMutableContext() { return &context_; }
 
