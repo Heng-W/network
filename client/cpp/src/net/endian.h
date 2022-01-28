@@ -7,9 +7,6 @@
 #ifdef ERROR
 #undef ERROR
 #endif
-#ifdef _MSC_VER
-#pragma comment(lib, "Ws2_32.lib")
-#endif // _MSC_VER
 #else
 #include <endian.h>
 #endif // _WIN32

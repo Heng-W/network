@@ -8,10 +8,7 @@
 #ifdef ERROR
 #undef ERROR
 #endif
-#ifdef _MSC_VER
-#pragma comment(lib, "Ws2_32.lib")
-#endif // _MSC_VER
-#else
+#else // unix
 #include <fcntl.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -19,40 +16,19 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #endif // _WIN32
+
 #include "../util/logger.h"
 #include "inet_address.h"
 
+#ifdef _WIN32
+#include "../util/winsock_initializer.h"
+INIT_WINSOCK_LIBRARY();
+#endif
 
 namespace net
 {
-
 namespace sockets
 {
-
-#ifdef _WIN32
-
-struct NetworkInitializer
-{
-    NetworkInitializer();
-    ~NetworkInitializer();
-};
-
-NetworkInitializer::NetworkInitializer()
-{
-    WORD wVersionRequested = MAKEWORD(2, 2);
-    WSADATA wsaData;
-    ::WSAStartup(wVersionRequested, &wsaData);
-}
-
-NetworkInitializer::~NetworkInitializer()
-{
-    ::WSACleanup();
-}
-
-NetworkInitializer g_windowsNetworkInitializer;
-
-#endif // _WIN32
-
 
 static const struct sockaddr* sockaddr_cast(const struct sockaddr_in* addr)
 { return reinterpret_cast<const struct sockaddr*>(addr); }

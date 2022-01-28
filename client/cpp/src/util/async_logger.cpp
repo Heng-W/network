@@ -4,6 +4,8 @@
 #ifdef _WIN32
 #include <process.h>
 #include <Winsock2.h>
+#include "winsock_initializer.h"
+INIT_WINSOCK_LIBRARY();
 #else
 #include <unistd.h>
 #endif
