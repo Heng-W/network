@@ -55,7 +55,7 @@ public:
 
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            pendingFunctors_.push_back(std::move(cb));
+            pendingFunctors_.emplace_back(std::move(cb));
         }
 
         if (!isInLoopThread() || callingPendingFunctors_)
