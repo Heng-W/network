@@ -39,7 +39,7 @@ Logger::OutputFunc Logger::output_ = [](const char* msg, int len)
 Logger::FlushFunc Logger::flush_ = [] { fflush(stdout); };
 
 
-thread_local std::ostringstream Logger::stream_;
+thread_local LogStream Logger::stream_;
 
 Logger::Logger(LogLevel level, int savedErrno, const char* file, int line)
     : level_(level)
@@ -66,7 +66,6 @@ Logger::~Logger()
     const std::string& str = stream_.str();
     output_(str.data(), str.size());
     stream_.clear();
-    stream_.str("");
     if (level_ == FATAL)
     {
         flush_();
