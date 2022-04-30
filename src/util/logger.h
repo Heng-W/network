@@ -20,7 +20,7 @@ public:
     Logger(const char* file, int line, LogLevel level, const char* func);
     ~Logger();
 
-    static std::ostream& stream() { return stream_; }
+    LogStream& stream() { return stream_; }
 
     static LogLevel minLogLevel() { return minLogLevel_; }
     static void setMinLogLevel(LogLevel level) { minLogLevel_ = level; }
@@ -33,8 +33,8 @@ private:
     static LogLevel minLogLevel_;
     static OutputFunc output_;
     static FlushFunc flush_;
-    static thread_local LogStream stream_;
 
+    LogStream stream_;
     LogLevel level_;
 };
 
