@@ -231,6 +231,32 @@ void close(int sockfd)
     }
 }
 
+int recvByUdp(int sockfd, void* buf, int len, InetAddress* peerAddr)
+{
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    socklen_t addrlen = static_cast<socklen_t>(sizeof(addr));
+#ifdef _WIN32
+    int n = ::recvfrom(sockfd, static_cast<char*>(buf), len, 0, sockaddr_cast(&addr), &addrlen);
+#else
+    int n = ::recvfrom(sockfd, buf, len, 0, sockaddr_cast(&addr), &addrlen);
+#endif
+    peerAddr->setSockAddr(addr);
+    return n;
+}
+
+int sendByUdp(int sockfd, const void* buf, int len, const InetAddress& addr)
+{
+    const struct sockaddr_in& sockAddr = addr.getSockAddr();
+#ifdef _WIN32
+    return ::sendto(sockfd, static_cast<const char*>(buf), len, 0, sockaddr_cast(&sockAddr),
+                    static_cast<socklen_t>(sizeof(sockAddr)));
+#else
+    return ::sendto(sockfd, buf, len, 0, sockaddr_cast(&sockAddr),
+                    static_cast<socklen_t>(sizeof(sockAddr)));
+#endif
+}
+
 void shutdownWrite(int sockfd)
 {
 #ifdef _WIN32
