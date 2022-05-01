@@ -182,7 +182,7 @@ public class TcpClient {
 
         synchronized (this) {
             try {
-                while (recv) {
+                while (recv && !quit) {
                     wait();
                 }
             } catch (InterruptedException e) {
@@ -200,9 +200,8 @@ public class TcpClient {
     }
 
     private void recvThreadFunc() {
-        while (true) {
+        while (!quit) {
             synchronized (this) {
-                recv = false;
                 try {
                     while (!recv && !quit) {
                         wait();
@@ -215,7 +214,13 @@ public class TcpClient {
                 }
             }
             logger.finest("start recv");
+
             connection.doRecvEvent();
+
+            synchronized (this) {
+                recv = false;
+                notify();
+            }
         }
     }
 
