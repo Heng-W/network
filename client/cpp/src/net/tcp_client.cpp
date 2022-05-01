@@ -92,7 +92,7 @@ void TcpClient::newConnection(int sockfd)
 
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        recvCond_.wait(lock, [this] { return !recv_; });
+        recvCond_.wait(lock, [this] { return !recv_ || quit_; });
         connection_.reset();
     }
 
@@ -110,15 +110,18 @@ void TcpClient::newConnection(int sockfd)
 
 void TcpClient::recvThreadFunc()
 {
-    while (true)
+    while (!quit_)
     {
-        recv_ = false;
         {
             std::unique_lock<std::mutex> lock(mutex_);
             recvCond_.wait(lock, [this] { return recv_ || quit_; });
         }
         if (quit_) return;
+
         connection_->doRecvEvent();
+
+        recv_ = false;
+        recvCond_.notify_one();
     }
 }
 
