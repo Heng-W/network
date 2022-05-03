@@ -9,7 +9,7 @@ namespace util
 class LogStreamBuf : public std::streambuf
 {
 public:
-    // "len" must be >= 2 to account for the '\n' and '\0'.
+    // REQUIREMENTS: "len" must be >= 2 to account for the '\n' and '\0'.
     LogStreamBuf()
     {
         thread_local char buf[20480];
@@ -17,10 +17,10 @@ public:
     }
 
     // This effectively ignores overflow.
-    int_type overflow(int_type ch) override { return ch; }
+    int_type overflow(int_type ch) { return ch; }
 
     // Legacy public ostrstream method.
-    size_t pcount() const { return pptr() - pbase(); }
+    size_t pcount() const { return static_cast<size_t>(pptr() - pbase()); }
     char* pbase() const { return std::streambuf::pbase(); }
 };
 
@@ -34,6 +34,9 @@ public:
           self_(this)
     { rdbuf(&streambuf_); }
 
+    LogStream(const LogStream&) = delete;
+    LogStream& operator=(const LogStream&) = delete;
+
     int ctr() const { return ctr_; }
     void set_ctr(int ctr) { ctr_ = ctr; }
     LogStream* self() const { return self_; }
@@ -44,8 +47,6 @@ public:
     char* str() const { return pbase(); }
 
 private:
-    LogStream(const LogStream&);
-    LogStream& operator=(const LogStream&);
     LogStreamBuf streambuf_;
     int ctr_;
     LogStream* self_;
