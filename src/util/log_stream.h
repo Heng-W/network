@@ -1,7 +1,7 @@
 #ifndef UTIL_LOG_STREAM_H
 #define UTIL_LOG_STREAM_H
 
-#include <iostream>
+#include <ostream>
 
 namespace util
 {
