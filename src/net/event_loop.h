@@ -47,6 +47,33 @@ public:
         }
     }
 
+    // 成员函数指针特化
+    template <class Tp, class Res, class Class, class... Args>
+    void runInLoop(Res(Class::*pmf)(Args...), Tp&& object, Args&& ... args)
+    {
+        if (isInLoopThread())
+        {
+            std::mem_fn(pmf)(std::forward<Tp>(object), std::forward<Args>(args)...);
+        }
+        else
+        {
+            queueInLoop(pmf, std::forward<Tp>(object), std::forward<Args>(args)...);
+        }
+    }
+
+    template <class Res, class Class, class... Args>
+    void runInLoop(Res(Class::*pmf)(Args...), Class* object, Args&& ... args)
+    {
+        if (isInLoopThread())
+        {
+            (object->*pmf)(std::forward<Args>(args)...);
+        }
+        else
+        {
+            queueInLoop(pmf, object, std::forward<Args>(args)...);
+        }
+    }
+
     // 加入执行队列（线程安全）
     template <class Fn, class... Args>
     void queueInLoop(Fn&& fn, Args&& ... args)
