@@ -241,7 +241,7 @@ int recvByUdp(int sockfd, void* buf, int len, InetAddress* peerAddr)
 #else
     int n = ::recvfrom(sockfd, buf, len, 0, sockaddr_cast(&addr), &addrlen);
 #endif
-    peerAddr->setSockAddr(addr);
+    if (peerAddr) peerAddr->setSockAddr(addr);
     return n;
 }
 
