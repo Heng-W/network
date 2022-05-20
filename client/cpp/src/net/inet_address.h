@@ -9,9 +9,6 @@
 typedef int sa_family_t;
 typedef int socklen_t;
 typedef unsigned int in_addr_t;
-#ifdef _MSC_VER
-#pragma comment(lib, "Ws2_32.lib")
-#endif // _MSC_VER
 #else
 #include <netinet/in.h>
 #endif // _WIN32

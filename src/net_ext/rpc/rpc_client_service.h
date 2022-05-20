@@ -1,6 +1,7 @@
 #ifndef NET_RPC_CLIENT_SERVICE_H
 #define NET_RPC_CLIENT_SERVICE_H
 
+#include <future>
 #include "net_ext/message/message.h"
 
 namespace net
@@ -38,6 +39,20 @@ void rpcSolve(const TcpConnectionPtr& conn,
         cb(concrete);
     };
     detail::rpcSolve(conn, request, std::move(callbacks));
+}
+
+template <class Response>
+std::future<std::shared_ptr<Response>> 
+rpcSolve(const TcpConnectionPtr& conn, const Message& request)
+{
+    using ResponsePtr = std::shared_ptr<Response>;
+    auto p = std::make_shared<std::promise<ResponsePtr>>();
+    auto f = p->get_future();
+    rpcSolve<Response>(conn, request, [p](const ResponsePtr& msg)
+    {
+        p->set_value(msg);
+    });
+    return f;
 }
 
 void registerRpcResponseHandler();

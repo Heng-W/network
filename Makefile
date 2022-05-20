@@ -61,6 +61,10 @@ $(SRC_TOPDIR):
 	@echo
 
 
+$(BIN_DIR):
+	mkdir -p $@
+	
+
 .PHONY: clean exec test install 
 
 clean:

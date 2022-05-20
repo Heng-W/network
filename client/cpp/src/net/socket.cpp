@@ -8,10 +8,7 @@
 #ifdef ERROR
 #undef ERROR
 #endif
-#ifdef _MSC_VER
-#pragma comment(lib, "Ws2_32.lib")
-#endif // _MSC_VER
-#else
+#else // unix
 #include <fcntl.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -19,40 +16,19 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #endif // _WIN32
+
 #include "../util/logger.h"
 #include "inet_address.h"
 
+#ifdef _WIN32
+#include "../util/winsock_initializer.h"
+INIT_WINSOCK_LIBRARY();
+#endif
 
 namespace net
 {
-
 namespace sockets
 {
-
-#ifdef _WIN32
-
-struct NetworkInitializer
-{
-    NetworkInitializer();
-    ~NetworkInitializer();
-};
-
-NetworkInitializer::NetworkInitializer()
-{
-    WORD wVersionRequested = MAKEWORD(2, 2);
-    WSADATA wsaData;
-    ::WSAStartup(wVersionRequested, &wsaData);
-}
-
-NetworkInitializer::~NetworkInitializer()
-{
-    ::WSACleanup();
-}
-
-NetworkInitializer g_windowsNetworkInitializer;
-
-#endif // _WIN32
-
 
 static const struct sockaddr* sockaddr_cast(const struct sockaddr_in* addr)
 { return reinterpret_cast<const struct sockaddr*>(addr); }
@@ -253,6 +229,32 @@ void close(int sockfd)
     {
         SYSLOG(ERROR) << "sockets::close";
     }
+}
+
+int recvByUdp(int sockfd, void* buf, int len, InetAddress* peerAddr)
+{
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    socklen_t addrlen = static_cast<socklen_t>(sizeof(addr));
+#ifdef _WIN32
+    int n = ::recvfrom(sockfd, static_cast<char*>(buf), len, 0, sockaddr_cast(&addr), &addrlen);
+#else
+    int n = ::recvfrom(sockfd, buf, len, 0, sockaddr_cast(&addr), &addrlen);
+#endif
+    if (peerAddr) peerAddr->setSockAddr(addr);
+    return n;
+}
+
+int sendByUdp(int sockfd, const void* buf, int len, const InetAddress& addr)
+{
+    const struct sockaddr_in& sockAddr = addr.getSockAddr();
+#ifdef _WIN32
+    return ::sendto(sockfd, static_cast<const char*>(buf), len, 0, sockaddr_cast(&sockAddr),
+                    static_cast<socklen_t>(sizeof(sockAddr)));
+#else
+    return ::sendto(sockfd, buf, len, 0, sockaddr_cast(&sockAddr),
+                    static_cast<socklen_t>(sizeof(sockAddr)));
+#endif
 }
 
 void shutdownWrite(int sockfd)

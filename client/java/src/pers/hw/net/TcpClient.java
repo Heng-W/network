@@ -41,7 +41,12 @@ public class TcpClient {
 
     public TcpClient(SocketAddress serverAddress) {
         this.serverAddress = serverAddress;
-        recvThread = new Thread(this::recvThreadFunc);
+        recvThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                recvThreadFunc();
+            }
+        });
         recvThread.setDaemon(true);
         recvThread.start();
         logger.info("Create TcpClient");
@@ -67,6 +72,12 @@ public class TcpClient {
             synchronized (this) {
                 notify();
             }
+        }
+    }
+
+    public TcpConnection connection() {
+        synchronized (this) {
+            return connection;
         }
     }
 
@@ -132,23 +143,21 @@ public class TcpClient {
         }
     }
 
+    private void doConnectionCallback(TcpConnection conn) {
+        if (callbacks != null) {
+            callbacks.onConnection(conn);
+        } else {
+            logger.info(conn.getLocalAddr().toString() + " -> " +
+                    conn.getPeerAddr().toString() + " is " +
+                    (conn.isConnected() ? "UP" : "DOWN"));
+        }
+    }
+
     private void newConnection(Socket socket) {
         SocketAddress peerAddr = socket.getRemoteSocketAddress();
         TcpConnection conn = new TcpConnection(socket, peerAddr);
 
         conn.setCallbacks(new TcpConnection.Callbacks() {
-
-            @Override
-            public void onConnection(TcpConnection conn) {
-                if (callbacks != null) {
-                    callbacks.onConnection(conn);
-                } else {
-                    logger.info(conn.getLocalAddr().toString() + " -> " +
-                            conn.getPeerAddr().toString() + " is " +
-                            (conn.isConnected() ? "UP" : "DOWN"));
-                }
-            }
-
             @Override
             public void onMessage(TcpConnection conn, Buffer buf) {
                 if (callbacks != null) {
@@ -164,13 +173,13 @@ public class TcpClient {
                     callbacks.onWriteComplete(conn);
                 }
             }
-
         });
 
         synchronized (this) {
             connection = conn;
         }
         if (!connect) return;
+
         conn.connectEstablished();
 
         synchronized (this) {
@@ -178,11 +187,13 @@ public class TcpClient {
             notify();
         }
 
+        doConnectionCallback(conn);
+
         conn.doSendEvent();
 
         synchronized (this) {
             try {
-                while (recv) {
+                while (recv && !quit) {
                     wait();
                 }
             } catch (InterruptedException e) {
@@ -190,7 +201,9 @@ public class TcpClient {
             }
             connection = null;
         }
+
         conn.connectDestroyed();
+        doConnectionCallback(conn);
 
         logger.info("removeConnection");
         if (retry && connect) {
@@ -200,9 +213,8 @@ public class TcpClient {
     }
 
     private void recvThreadFunc() {
-        while (true) {
+        while (!quit) {
             synchronized (this) {
-                recv = false;
                 try {
                     while (!recv && !quit) {
                         wait();
@@ -215,7 +227,13 @@ public class TcpClient {
                 }
             }
             logger.finest("start recv");
+
             connection.doRecvEvent();
+
+            synchronized (this) {
+                recv = false;
+                notify();
+            }
         }
     }
 

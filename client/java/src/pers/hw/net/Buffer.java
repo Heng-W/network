@@ -8,11 +8,11 @@ public class Buffer {
     private int writerIndex;
 
     public Buffer() {
-        this(1024, 8);
+        this(1024, 0);
     }
 
     public Buffer(int initialSize) {
-        this(initialSize, 8);
+        this(initialSize, 0);
     }
 
     public Buffer(int initialSize, int prependSize) {
@@ -46,10 +46,6 @@ public class Buffer {
         return writerIndex;
     }
 
-    public void retrieveAll() {
-        readerIndex = writerIndex = prependSize;
-    }
-
     public void hasWritten(int len) {
         writerIndex += len;
     }
@@ -57,6 +53,19 @@ public class Buffer {
     public void unwrite(int len) {
         assert len <= readableBytes();
         writerIndex -= len;
+    }
+
+    public void retrieve(int len) {
+        assert(len <= readableBytes());
+        if (len < readableBytes()) {
+            readerIndex += len;
+        } else {
+            retrieveAll();
+        }
+    }
+
+    public void retrieveAll() {
+        readerIndex = writerIndex = prependSize;
     }
 
     public byte[] data() {
@@ -73,18 +82,18 @@ public class Buffer {
         hasWritten(len);
     }
 
-    public void writeInt8(int num) {
+    public void appendInt8(int num) {
         ensureWritableBytes(1);
         buf[writerIndex++] = (byte) (num & 0xff);
     }
 
-    public void writeInt16(int num) {
+    public void appendInt16(int num) {
         ensureWritableBytes(2);
         buf[writerIndex++] = (byte) ((num >>> 8) & 0xff);
         buf[writerIndex++] = (byte) (num & 0xff);
     }
 
-    public void writeInt32(int num) {
+    public void appendInt32(int num) {
         ensureWritableBytes(4);
         buf[writerIndex++] = (byte) ((num >>> 24) & 0xff);
         buf[writerIndex++] = (byte) ((num >>> 16) & 0xff);
@@ -92,10 +101,43 @@ public class Buffer {
         buf[writerIndex++] = (byte) (num & 0xff);
     }
 
-    public void writeInt64(long num) {
+    public void appendInt64(long num) {
+        appendInt32((int) (num >>> 32));
+        appendInt32((int) (num));
+    }
 
-        writeInt32((int) (num >>> 32));
-        writeInt32((int) (num));
+    public void appendFloat(float val) {
+        appendInt32(Float.floatToIntBits(val));
+    }
+
+    public void appendDouble(double val) {
+        appendInt64(Double.doubleToLongBits(val));
+    }
+
+    public int peekInt8() {
+        return buf[readerIndex] & 0xff;
+    }
+
+    public int peekInt16() {
+        return buf[readerIndex] << 8 | buf[readerIndex + 1];
+    }
+
+    public int peekInt32() {
+        int res = 0;
+        res |= buf[readerIndex] << 24;
+        res |= buf[readerIndex + 1] << 16;
+        res |= buf[readerIndex + 2] << 8;
+        res |= buf[readerIndex + 3];
+        return res;
+    }
+
+    public long peekInt64() {
+        long res = 0;
+        int size = 8;
+        for (int i = 0; i < size; ++i) {
+            res |= buf[readerIndex + i] << (8 * (size - 1 - i));
+        }
+        return res;
     }
 
     public int readInt8() {
@@ -124,13 +166,42 @@ public class Buffer {
         return res;
     }
 
+    public void prepend(byte[] data, int off, int len) {
+        assert(len <= prependableBytes());
+        readerIndex -= len;
+        System.arraycopy(data, off, this.buf, readerIndex, len);
+    }
+
+    public void prependInt8(int num) {
+        readerIndex -= 1;
+        buf[readerIndex] = (byte) (num & 0xff);
+    }
+
+    public void prependInt16(int num) {
+        readerIndex -= 2;
+        buf[readerIndex] = (byte) ((num >>> 8) & 0xff);
+        buf[readerIndex + 1] = (byte) (num & 0xff);
+    }
+
+    public void prependInt32(int num) {
+        readerIndex -= 4;
+        buf[readerIndex] = (byte) ((num >>> 24) & 0xff);
+        buf[readerIndex + 1] = (byte) ((num >>> 16) & 0xff);
+        buf[readerIndex + 2] = (byte) ((num >>> 8) & 0xff);
+        buf[readerIndex + 3] = (byte) (num & 0xff);
+    }
+
+    public void prependInt64(long num) {
+        prependInt32((int) (num));
+        prependInt32((int) (num >>> 32));
+    }
+
     public void ensureWritableBytes(int len) {
         if (writableBytes() < len) {
             makeSpace(len);
         }
-        assert writableBytes() >= len;
+        assert(writableBytes() >= len);
     }
-
 
     private void makeSpace(int len) {
         int readable = readableBytes();

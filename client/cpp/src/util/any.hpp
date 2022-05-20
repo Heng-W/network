@@ -63,16 +63,17 @@ public:
 private:
     struct PlaceHolder
     {
-        virtual ~PlaceHolder() {}
+        virtual ~PlaceHolder() = default;
         virtual PlaceHolder* clone() const = 0;
         virtual const std::type_info& type_info() const = 0;
     };
 
     template <class ValueType>
-    struct Holder : PlaceHolder
+    struct Holder: PlaceHolder
     {
-        Holder(const ValueType& value) : held(value) {}
-        Holder(ValueType&& value) : held(std::move(value)) {}
+        Holder(const ValueType& value): held(value) {}
+        Holder(ValueType&& value): held(std::move(value)) {}
+
         PlaceHolder* clone() const override { return new Holder(held); }
         const std::type_info& type_info() const override { return typeid(ValueType); }
 
