@@ -74,7 +74,6 @@ void TcpClient::newConnection(int sockfd)
     InetAddress peerAddr = sockets::getPeerAddr(sockfd);
     TcpConnectionPtr conn = std::make_shared<TcpConnection>(sockfd, peerAddr);
 
-    conn->setConnectionCallback(connectionCallback_);
     conn->setMessageCallback(messageCallback_);
     conn->setWriteCompleteCallback(writeCompleteCallback_);
 
@@ -83,10 +82,14 @@ void TcpClient::newConnection(int sockfd)
         connection_ = conn;
     }
     if (!connect_) return;
+
     conn->connectEstablished();
 
+    // enable reading
     recv_ = true;
     recvCond_.notify_one();
+
+    connectionCallback_(conn);
 
     conn->doSendEvent();
 
@@ -97,6 +100,8 @@ void TcpClient::newConnection(int sockfd)
     }
 
     conn->connectDestroyed();
+
+    connectionCallback_(conn);
     conn.reset();
 
     if (retry_ && connect_)

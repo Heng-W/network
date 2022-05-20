@@ -28,18 +28,15 @@ public:
 
     void shutdown();
 
-    void setTcpNoDelay(bool on);
-
     void connectEstablished();
     void connectDestroyed();
+
+    void setTcpNoDelay(bool on);
 
     void doSendEvent();
     void doRecvEvent();
 
     // set callbacks
-    void setConnectionCallback(const ConnectionCallback& cb)
-    { connectionCallback_ = cb; }
-
     void setMessageCallback(const MessageCallback& cb)
     { messageCallback_ = cb; }
 
@@ -64,6 +61,8 @@ private:
 
     bool sendInThread(const void* data, int len);
 
+    bool isInSendThread() const { return sendThreadId_ == std::this_thread::get_id(); }
+
     void setState(State state) { state_ = state; }
 
     const char* stateToString() const;
@@ -71,6 +70,7 @@ private:
 
     std::atomic<State> state_;
     int sockfd_;
+    std::thread::id sendThreadId_;
 
     InetAddress localAddr_;
     InetAddress peerAddr_;
@@ -78,7 +78,6 @@ private:
     util::BlockingQueue<Buffer> buffersToSend_;
 
     // callbacks
-    ConnectionCallback connectionCallback_;
     MessageCallback messageCallback_;
     WriteCompleteCallback writeCompleteCallback_;
 

@@ -25,6 +25,7 @@ void defaultMessageCallback(const TcpConnectionPtr&, Buffer* buf, Timestamp)
 TcpConnection::TcpConnection(int sockfd, const InetAddress& peerAddr)
     : state_(kConnecting),
       sockfd_(sockfd),
+      sendThreadId_(std::this_thread::get_id()),
       localAddr_(sockets::getLocalAddr(sockfd)),
       peerAddr_(peerAddr)
 {
@@ -44,9 +45,16 @@ void TcpConnection::send(const void* data, int len)
 {
     if (state_ == kConnected)
     {
-        Buffer buf(len, 0);
-        buf.append(data, len);
-        send(std::move(buf));
+        if (isInSendThread())
+        {
+            sendInThread(data, len);
+        }
+        else
+        {
+            Buffer buf(len, 0);
+            buf.append(data, len);
+            buffersToSend_.put(std::move(buf));
+        }
     }
 }
 
@@ -59,7 +67,14 @@ void TcpConnection::send(Buffer&& buf)
 {
     if (state_ == kConnected)
     {
-        buffersToSend_.put(std::move(buf));
+        if (isInSendThread())
+        {
+            sendInThread(buf.peek(), buf.readableBytes());
+        }
+        else
+        {
+            buffersToSend_.put(std::move(buf));
+        }
     }
 }
 
@@ -84,29 +99,36 @@ bool TcpConnection::sendInThread(const void* data, int len)
 
 void TcpConnection::doSendEvent()
 {
-    while (state_ == kConnected)
+    while (true)
     {
         Buffer buf = buffersToSend_.get();
-        LOG(TRACE) << stateToString();
-        if (state_ != kConnected || !sendInThread(buf.peek(), buf.readableBytes()))
+        if (state_ == kDisconnected)
+        {
+            LOG(WARN) << "disconnected, give up writing";
+            return;
+        }
+        if (buf.readableBytes() > 0)
+        {
+            if (!sendInThread(buf.peek(), buf.readableBytes()))
+            {
+                break;
+            }
+        }
+        else if (state_ == kDisconnecting)
         {
             break;
         }
     }
-    setState(kDisconnecting);
-    sockets::shutdownReadWrite(sockfd_);
+    sockets::shutdownWrite(sockfd_); // send FIN
 }
 
 
 void TcpConnection::doRecvEvent()
 {
-    while (state_ == kConnected)
+    while (true)
     {
         inputBuffer_.ensureWritableBytes(kMaxReadSize);
         int n = sockets::read(sockfd_, inputBuffer_.beginWrite(), kMaxReadSize);
-        LOG(TRACE) << stateToString();
-        if (state_ != kConnected) break;
-
         if (n > 0)
         {
             inputBuffer_.hasWritten(n);
@@ -125,33 +147,32 @@ void TcpConnection::doRecvEvent()
             break;
         }
     }
-    shutdown();
+    if (state_ == kConnected)
+    {
+        setState(kDisconnected);
+        buffersToSend_.put(Buffer(0)); // wakeup
+    }
 }
 
-void TcpConnection::connectEstablished()
-{
-    assert(state_ == kConnecting);
-    setState(kConnected);
-
-    connectionCallback_(shared_from_this());
-}
-
-void TcpConnection::connectDestroyed()
-{
-    LOG(TRACE) << "fd = " << sockfd_ << " state = " << stateToString();
-    assert(state_ == kDisconnecting);
-    setState(kDisconnected);
-
-    connectionCallback_(shared_from_this());
-}
 
 void TcpConnection::shutdown()
 {
     if (state_ == kConnected)
     {
         setState(kDisconnecting);
-        buffersToSend_.put(Buffer(0));
+        buffersToSend_.put(Buffer(0)); // wakeup
     }
+}
+
+void TcpConnection::connectEstablished()
+{
+    assert(state_ == kConnecting);
+    setState(kConnected);
+}
+
+void TcpConnection::connectDestroyed()
+{
+    setState(kDisconnected);
 }
 
 void TcpConnection::setTcpNoDelay(bool on)
