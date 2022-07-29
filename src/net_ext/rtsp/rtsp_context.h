@@ -14,14 +14,25 @@ struct RtspServerInfo;
 class RtspContext
 {
 public:
-    RtspContext(RtspServerInfo* server): server_(server) {}
+    enum RtspRequestParseState
+    {
+        kExpectRequestLine,
+        kExpectCSeq,
+        kExpectHeaders,
+        kGotAll,
+    };
+
+    RtspContext(RtspServerInfo* server): state_(kExpectRequestLine), server_(server) {}
 
     bool handleRequest(const TcpConnectionPtr& conn,
                        Buffer* buf,
                        util::Timestamp receiveTime);
 
-
-    void reset() { RtspRequest().swap(request_); }
+    void reset()
+    {
+        state_ = kExpectRequestLine;
+        RtspRequest().swap(request_);
+    }
 
     const RtspRequest& request() const { return request_; }
     RtspRequest& request() { return request_; }
@@ -29,6 +40,9 @@ public:
     std::shared_ptr<MediaSession> session() const { return session_; }
 
 private:
+    bool processRequestLine(const char* start, const char* end);
+
+    RtspRequestParseState state_;
     RtspRequest request_;
     std::shared_ptr<MediaSession> session_;
     RtspServerInfo* server_;

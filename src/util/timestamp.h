@@ -67,11 +67,11 @@ public:
     explicit Duration(int64_t microSeconds): microSeconds_(microSeconds) {}
 
     int64_t toUsec() const { return microSeconds_; }
-    int64_t toMsec() const { return microSeconds_ / 1000; }
-    int64_t toSec() const { return microSeconds_ / (1000 * 1000); }
-    int64_t toMinute() const { return toSec() / 60; }
-    int64_t toHour() const { return toMinute() / 60; }
-    int64_t toDay() const { return toHour() / 24; }
+    int64_t toMsec() const { return (microSeconds_ + 999) / 1000; }
+    int64_t toSec() const { return (microSeconds_ + 999999) / (1000 * 1000); }
+    int64_t toMinute() const { return (toSec() + 59) / 60; }
+    int64_t toHour() const { return (toMinute() + 59) / 60; }
+    int64_t toDay() const { return (toHour() + 23) / 24; }
 
 private:
     int64_t microSeconds_;
@@ -80,9 +80,9 @@ private:
 inline Duration usec(int64_t val) { return Duration(val); }
 inline Duration msec(int64_t val) { return Duration(val * 1000); }
 inline Duration sec(int64_t val) { return Duration(val * 1000 * 1000); }
-inline Duration minute(int64_t val) { return Duration(val * 1000 * 1000 * 60); }
-inline Duration hour(int64_t val) { return Duration(val * 1000 * 1000 * 60 * 60); }
-inline Duration day(int64_t val) { return Duration(val * 1000 * 1000 * 60 * 60 * 24); }
+inline Duration minute(int64_t val) { return sec(val * 60); }
+inline Duration hour(int64_t val) { return minute(val * 60); }
+inline Duration day(int64_t val) { return hour(val * 24); }
 
 
 inline bool operator<(Timestamp lhs, Timestamp rhs)
