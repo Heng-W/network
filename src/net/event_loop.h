@@ -99,7 +99,7 @@ public:
     int64_t addTimer(const TimerCallback& cb, int64_t delayMs, int64_t periodMs = 0);
     void removeTimer(int64_t timerId);
 
-    void assertInLoopThread()
+    void assertInLoopThread() const
     {
 #ifndef NDEBUG
         if (!isInLoopThread()) abortNotInLoopThread();
@@ -121,7 +121,7 @@ public:
 private:
     friend class Channel;
 
-    void abortNotInLoopThread();
+    void abortNotInLoopThread() const;
     void wakeup();
     void handleRead(); // wake up
     void doPendingFunctors();

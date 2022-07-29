@@ -24,26 +24,20 @@ static std::string getSdpString(const RtspRequest& request)
              "a=rtpmap:96 H264/90000\r\n"
              "a=control:track0\r\n",
              time(nullptr), localIp);
-    return std::string(sdp);
+    return sdp;
 }
 
 
-bool RtspContext::handleRequest(const TcpConnectionPtr& conn, Buffer* buf, util::Timestamp)
+bool RtspContext::processRequestLine(const char* start, const char* end)
 {
-    const char* start = buf->peek();
-
-    // request line
-    const char* crlf = buf->findCRLF();
-    if (!crlf) return false;
-
     // method
-    const char* space = std::find(start, crlf, ' ');
-    if (space == crlf || !request_.setMethod(start, space)) return false;
+    const char* space = std::find(start, end, ' ');
+    if (space == end || !request_.setMethod(start, space)) return false;
 
     // url
     start = space + 1;
-    space = std::find(start, crlf, ' ');
-    if (space == crlf) return false;
+    space = std::find(start, end, ' ');
+    if (space == end) return false;
     request_.setUrl(start, space);
 
     // get session from url
@@ -59,44 +53,68 @@ bool RtspContext::handleRequest(const TcpConnectionPtr& conn, Buffer* buf, util:
 
     // version
     start = space + 1;
-    if (!(crlf - start == 8 && std::equal(start, crlf, "RTSP/1.0"))) return false;
+    if (!(end - start == 8 && std::equal(start, end, "RTSP/1.0"))) return false;
+    return true;
+}
 
-    // next line
-    buf->retrieveUntil(crlf + 2);
-    start = crlf + 2;
-    crlf = buf->findCRLF();
-    if (!crlf) return false;
 
-    // 解析序列号
-    int cseq;
-    if (sscanf(start, "CSeq: %d\r\n", &cseq) != 1) return false;
-    request_.setCSeq(cseq);
 
-    buf->retrieveUntil(crlf + 2);
-    start = crlf + 2;
-    while (true)
+bool RtspContext::handleRequest(const TcpConnectionPtr& conn, Buffer* buf, util::Timestamp receiveTime)
+{
+    bool hasMore = true;
+    while (hasMore)
     {
-        crlf = buf->findCRLF();
-        if (!crlf) return false;
-        const char* colon = std::find(buf->peek(), crlf, ':');
-        if (colon != crlf)
+        if (state_ == kExpectRequestLine)
         {
-            request_.addHeader(buf->peek(), colon, crlf);
+            const char* crlf = buf->findCRLF();
+            if (!crlf) return true;
+            bool ok = processRequestLine(buf->peek(), crlf);
+            if (!ok) return false;
+            request_.setReceiveTime(receiveTime);
             buf->retrieveUntil(crlf + 2);
+            state_ = kExpectCSeq;
         }
-        else
+        else if (state_ == kExpectCSeq)
         {
+            const char* crlf = buf->findCRLF();
+            if (!crlf) return true;
+            const char* colon = std::find(buf->peek(), crlf, ':');
+            if (!std::equal(buf->peek(), colon, "CSeq")) return false;
+            ++colon;
+            while (colon < crlf && isspace(*colon)) ++colon;
+            int cseq = 0;
+            while (colon < crlf && isdigit(*colon))
+            {
+                cseq = cseq * 10 + (*colon - '0');
+                ++colon;
+            }
+            request_.setCSeq(cseq);
             buf->retrieveUntil(crlf + 2);
-            break;
+            state_ = kExpectHeaders;
+        }
+        else if (state_ == kExpectHeaders)
+        {
+            const char* crlf = buf->findCRLF();
+            if (!crlf) return true;
+            const char* colon = std::find(buf->peek(), crlf, ':');
+            if (colon != crlf)
+            {
+                request_.addHeader(buf->peek(), colon, crlf);
+            }
+            else
+            {
+                // empty line, end of header
+                state_ = kExpectRequestLine;;
+                hasMore = false;
+            }
+            buf->retrieveUntil(crlf + 2);
         }
     }
-
-    LOG(TRACE) << "C--------->S\n" << start;
 
     RtspResponse resp;
     resp.setStatusCode(RtspResponse::k200Ok);
     resp.setStatusMessage("OK");
-    resp.setCSeq(cseq);
+    resp.setCSeq(request_.cseq());
 
     switch (request_.method())
     {
@@ -158,6 +176,7 @@ bool RtspContext::handleRequest(const TcpConnectionPtr& conn, Buffer* buf, util:
             break;
         }
         case RtspRequest::kTeardown:
+            session_.reset();
             break;
         default:
             return false;

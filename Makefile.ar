@@ -1,0 +1,20 @@
+#Build static library
+
+DIR_LIST:=$(shell bash collect_dir.sh build/$(OBJ_DIR_NAME))
+OBJS:=$(foreach n, $(DIR_LIST), $(addprefix $(n)/, $(shell cat $(n)/list)))
+
+TARGET_DIR:=$(dir $(TARGET))
+
+
+all: $(TARGET_DIR) $(TARGET)
+
+$(TARGET_DIR):
+	mkdir -p $@
+
+$(TARGET): $(OBJS)
+	@rm -f $@
+	@echo "Build static library"
+	ar -rc $@ $^
+	@echo
+	@echo "Build successfully!"
+	

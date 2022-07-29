@@ -1,14 +1,13 @@
 
-C++11实现的Reactor模型网络库（参考[muduo](http://github.com/chenshuo/muduo)实现）
+Linux下使用C++11实现的Reactor模型网络库（参考[muduo](http://github.com/chenshuo/muduo)实现）
 
-服务端为Linux C++
-
-客户端支持Linux及Windows（包括C++，Java的实现）
+支持Linux及Windows、线程安全的TCP客户端（包括C++，Java的实现）
 
 特性：
-- 消息编解码器，序列化及反序列化（参考protobuf设计）
+- 自动生成序列化/反序列化代码的消息编译器（参考protobuf设计）
 - 轻量级RPC框架
 - 简易的RTSP流媒体服务器、HTTP服务器
+- 基于OpenSSL实现RSA+AES混合加密传输
 
 
 ### Linux下编译安装
