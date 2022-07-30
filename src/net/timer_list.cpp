@@ -1,12 +1,7 @@
 
 #include "timer_list.h"
 
-#include <unistd.h>
-#include <string.h>
-#include <sys/timerfd.h>
-#include <functional>
 #include <atomic>
-#include "../util/logger.h"
 #include "event_loop.h"
 
 namespace net

@@ -12,8 +12,8 @@ namespace net
 {
 
 static void handleServerRSAKey(const net::TcpConnectionPtr& conn,
-                           const std::shared_ptr<ServerRSAKey>& message,
-                           util::Timestamp)
+                               const std::shared_ptr<ServerRSAKey>& message,
+                               util::Timestamp)
 {
     std::string aesKey = ssl::generateAESKey(); // 生成随机对称密钥
     std::string encoded = ssl::rsa::publicEncrypt(aesKey, message->key); // 用Server公钥加密

@@ -13,16 +13,16 @@ namespace net
 {
 
 static void handleAESKey(const net::TcpConnectionPtr& conn,
-                          const std::shared_ptr<EncryptedAESKey>& message,
-                          util::Timestamp)
+                         const std::shared_ptr<EncryptedAESKey>& message,
+                         util::Timestamp)
 {
     std::string aesKey = ssl::rsa::privateDecrypt(message->key, s_privateKey); // 私钥解密
     conn->setContext(std::move(aesKey));
 }
 
 static void handleText(const net::TcpConnectionPtr& conn,
-                          const std::shared_ptr<Text>& message,
-                          util::Timestamp)
+                       const std::shared_ptr<Text>& message,
+                       util::Timestamp)
 {
     LOG(INFO) << message->what;
 }
@@ -40,7 +40,7 @@ int main()
     std::string publicKey = keyPair.second;
     EventLoop loop;
     TcpServer server(&loop, InetAddress(18825));
-    server.setConnectionCallback([&publicKey](const TcpConnectionPtr& conn)
+    server.setConnectionCallback([&publicKey](const TcpConnectionPtr & conn)
     {
         if (conn->connected())
         {
