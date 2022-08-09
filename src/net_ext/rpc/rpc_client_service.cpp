@@ -14,7 +14,7 @@ namespace net
 namespace
 {
 std::atomic<uint64_t> s_id;
-std::unordered_map<uint64_t, std::shared_ptr<ResponseCallbackList>> s_callbackMap;
+std::unordered_map<uint64_t, ResponseCallbackList> s_callbackMap;
 std::mutex s_mutex;
 
 } // namespace
@@ -24,7 +24,7 @@ namespace detail
 
 void rpcSolve(const TcpConnectionPtr& conn,
               const Message& request,
-              const std::shared_ptr<ResponseCallbackList>& callbacks)
+              ResponseCallbackList&& callbacks)
 {
     uint64_t id = ++s_id;
     RpcRequest rpcRequest;
@@ -36,7 +36,7 @@ void rpcSolve(const TcpConnectionPtr& conn,
     assert(nwrote == rpcRequest.content.size());
     {
         std::lock_guard<std::mutex> lock(s_mutex);
-        s_callbackMap[id] = callbacks;
+        s_callbackMap[id] = std::move(callbacks);
     }
     send(conn, rpcRequest);
 }
@@ -47,7 +47,8 @@ static void handleResponse(const net::TcpConnectionPtr& conn,
                            const std::shared_ptr<RpcResponse>& rpcResponse,
                            util::Timestamp receiveTime)
 {
-    std::shared_ptr<ResponseCallbackList> callbacks;
+    ResponseCallbackList callbacks;
+    bool find = false;
 
     {
         std::lock_guard<std::mutex> lock(s_mutex);
@@ -56,18 +57,19 @@ static void handleResponse(const net::TcpConnectionPtr& conn,
         {
             callbacks = std::move(it->second);
             s_callbackMap.erase(it);
+            find = true;
         }
     }
-    if (!callbacks)
+    if (!find)
     {
         LOG(ERROR) << "unknown id: " << rpcResponse->id;
         return;
     }
-    auto msg = callbacks->createResponse();
+    auto msg = callbacks.createResponse();
     assert(msg);
     if (msg->decodeFromBytes(rpcResponse->content.data(), rpcResponse->content.size()))
     {
-        callbacks->handle(msg);
+        callbacks.handle(msg);
     }
     else
     {
