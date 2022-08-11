@@ -68,6 +68,11 @@ void TcpConnection::send(const void* data, int len)
     }
 }
 
+void TcpConnection::send(const std::string& message)
+{
+    send(message.data(), message.size());
+}
+
 void TcpConnection::send(std::string&& message)
 {
     if (state_ == kConnected)
@@ -85,6 +90,11 @@ void TcpConnection::send(std::string&& message)
             });
         }
     }
+}
+
+void TcpConnection::send(const Buffer& buf)
+{
+    send(buf.peek(), buf.readableBytes());
 }
 
 void TcpConnection::send(Buffer&& buf)

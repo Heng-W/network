@@ -25,9 +25,15 @@ public:
 
     DISALLOW_COPY_AND_ASSIGN(TcpConnection);
 
+
     void send(const void* data, int len);
+
+    void send(const std::string& message);
     void send(std::string&& message);
+
+    void send(const Buffer& buf);
     void send(Buffer&& buf);
+
 
     void shutdown();
     void forceClose();
