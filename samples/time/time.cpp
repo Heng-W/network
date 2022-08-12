@@ -7,6 +7,7 @@ TimeServer::TimeServer(net::EventLoop* loop,
                        const net::InetAddress& listenAddr)
     : server_(loop, listenAddr)
 {
+    server_.setThreadNum(4);
     server_.setConnectionCallback([](const net::TcpConnectionPtr & conn)
     {
         LOG(INFO) << "TimeServer - " << conn->peerAddr().toIpPort() << " -> "

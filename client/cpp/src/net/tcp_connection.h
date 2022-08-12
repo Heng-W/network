@@ -24,7 +24,9 @@ public:
 
     void send(const void* data, int len);
     void send(const std::string& message);
-    void send(Buffer&& message);
+
+    void send(const Buffer& buf);
+    void send(Buffer&& buf);
 
     void shutdown();
 

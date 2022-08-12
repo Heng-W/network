@@ -1,11 +1,11 @@
 
 #include "time.h"
 
+#include <unistd.h>
+#include <thread>
 #include "util/logger.h"
 #include "net/event_loop.h"
 
-#include <unistd.h>
-#include <thread>
 
 int main()
 {
