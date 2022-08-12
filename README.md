@@ -12,7 +12,7 @@
 
 ### Linux下编译安装
 ```shell
-make -j
+make -j [USE_OPENSSL=1] [USE_MYSQL=1]
 make install [PREFIX=<install_dir>]
 ```
 

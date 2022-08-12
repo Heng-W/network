@@ -6,10 +6,10 @@ PREFIX?=install
 TARGET_NAME?=net
 
 
-USE_OPENSSL?=1
+USE_OPENSSL?=0
 OPENSSL_INCLUDE_DIR?=/usr/local/openssl/include
 
-USE_MYSQL?=1
+USE_MYSQL?=0
 MYSQL_INCLUDE_DIR?=
 
 
