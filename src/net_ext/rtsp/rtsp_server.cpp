@@ -3,6 +3,7 @@
 
 #include "util/logger.h"
 #include "net/socket.h"
+#include "net/channel.h"
 #include "rtsp_context.h"
 #include "rtsp_response.h"
 #include "rtsp_server_info.h"
@@ -37,17 +38,34 @@ RtspServer::RtspServer(EventLoop* loop,
         this->onMessage(conn, buf, receiveTime);
     });
 
-    info_->rtpSocket.reset(new Socket(sockets::createUdp()));
-    info_->rtcpSocket.reset(new Socket(sockets::createUdp()));
+    info_->rtpSocket.reset(new Socket(sockets::createUdpNonBlock()));
+    info_->rtcpSocket.reset(new Socket(sockets::createUdpNonBlock()));
 
     info_->rtpSocket->bind(rtpSocketAddr);
     info_->rtcpSocket->bind(rtcpSocketAddr);
 
     info_->rtpPort = rtpSocketAddr.toPort();
     info_->rtcpPort = rtcpSocketAddr.toPort();
+
+    info_->rtpChannel.reset(new Channel(loop, info_->rtpSocket->fd()));
+    info_->rtpChannel->setReadCallback([this](Timestamp)
+    {
+        char buf[4];
+        int fd = info_->rtpSocket->fd();
+        InetAddress peerAddr;
+        sockets::recvByUdp(fd, buf, sizeof(buf), &peerAddr);
+        uint16_t portVal = hostToNetwork16(peerAddr.toPort());
+        memcpy(buf, &portVal, sizeof(portVal));
+        sockets::sendByUdp(fd, buf, sizeof(uint16_t), peerAddr);
+    });
+    info_->rtpChannel->enableReading();
 }
 
-RtspServer::~RtspServer() = default;
+RtspServer::~RtspServer()
+{
+    info_->rtpChannel->disableAll();
+    info_->rtpChannel->remove();
+}
 
 void RtspServer::start()
 {

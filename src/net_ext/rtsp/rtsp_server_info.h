@@ -9,6 +9,7 @@ namespace net
 
 class DeviceSource;
 class Socket;
+class Channel;
 
 struct RtspServerInfo
 {
@@ -27,6 +28,9 @@ struct RtspServerInfo
     // for udp
     std::unique_ptr<Socket> rtpSocket;
     std::unique_ptr<Socket> rtcpSocket;
+
+    std::unique_ptr<Channel> rtpChannel;
+    std::unique_ptr<Channel> rtcpChannel;
 
     uint16_t rtpPort;
     uint16_t rtcpPort;
