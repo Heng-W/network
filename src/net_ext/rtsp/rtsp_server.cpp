@@ -54,8 +54,8 @@ RtspServer::RtspServer(EventLoop* loop,
         int fd = info_->rtpSocket->fd();
         InetAddress peerAddr;
         sockets::recvByUdp(fd, buf, sizeof(buf), &peerAddr);
-        uint16_t portVal = hostToNetwork16(peerAddr.toPort());
-        memcpy(buf, &portVal, sizeof(portVal));
+        uint16_t portNetEndian = peerAddr.portNetEndian();
+        memcpy(buf, &portNetEndian, sizeof(portNetEndian));
         sockets::sendByUdp(fd, buf, sizeof(uint16_t), peerAddr);
     });
     info_->rtpChannel->enableReading();
