@@ -67,11 +67,18 @@ public:
     explicit Duration(int64_t microSeconds): microSeconds_(microSeconds) {}
 
     int64_t toUsec() const { return microSeconds_; }
-    int64_t toMsec() const { return (microSeconds_ + 999) / 1000; }
-    int64_t toSec() const { return (microSeconds_ + 999999) / (1000 * 1000); }
-    int64_t toMinute() const { return (toSec() + 59) / 60; }
-    int64_t toHour() const { return (toMinute() + 59) / 60; }
-    int64_t toDay() const { return (toHour() + 23) / 24; }
+    int64_t toMsec() const { return (microSeconds_) / 1000; }
+    int64_t toSec() const { return (microSeconds_) / (1000 * 1000); }
+    int64_t toMinute() const { return toSec() / 60; }
+    int64_t toHour() const { return toMinute() / 60; }
+    int64_t toDay() const { return toHour() / 24; }
+
+    int64_t ceilToUsec() const { return microSeconds_; }
+    int64_t ceilToMsec() const { return (microSeconds_ + 999) / 1000; }
+    int64_t ceilToSec() const { return (microSeconds_ + 999999) / (1000 * 1000); }
+    int64_t ceilToMinute() const { return (toSec() + 59) / 60; }
+    int64_t ceilToHour() const { return (toMinute() + 59) / 60; }
+    int64_t ceilToDay() const { return (toHour() + 23) / 24; }
 
 private:
     int64_t microSeconds_;

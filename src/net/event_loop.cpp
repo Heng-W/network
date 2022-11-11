@@ -94,7 +94,7 @@ void EventLoop::loop()
         Timestamp nextExpiration = timerList_->nextExpiration();
         if (nextExpiration.valid())
         {
-            pollTimeMs = (nextExpiration - Timestamp::now()).toMsec();
+            pollTimeMs = (nextExpiration - Timestamp::now()).ceilToMsec();
             if (pollTimeMs < 0) pollTimeMs = 0;
             else if (pollTimeMs > kMaxPollTimeMs) pollTimeMs = kMaxPollTimeMs;
         }
