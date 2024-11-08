@@ -1,6 +1,6 @@
 
 CXX?=g++
-CXXFLAGS:=-std=c++11 -Wall
+CXXFLAGS:=-std=c++11 -Wall -Werror
 
 PREFIX?=install
 TARGET_NAME?=net

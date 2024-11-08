@@ -3,8 +3,10 @@
 
 #include <assert.h>
 #include <string.h>
-#include <memory>
 #include <algorithm>
+#include <memory>
+#include <string>
+
 #include "endian.h"
 
 namespace net

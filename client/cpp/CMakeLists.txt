@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(net)
 
-set(CXX_FLAGS "-std=c++11 -Wall")
+set(CXX_FLAGS "-std=c++11 -Wall -Werror")
 
 set(TARGET "net_client")
 

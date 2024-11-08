@@ -2,6 +2,7 @@
 #define NET_RTSP_RESPONSE_H
 
 #include <map>
+#include <string>
 
 namespace net
 {
